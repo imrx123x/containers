@@ -4,7 +4,7 @@ docker run --rm -p 5001:5000 -v $(pwd):/app docker_test_app                     
 docker compose up/down                                                          # use docker-compose.yml, reloads work
 docker compose up -d                                                            # same but in the background
 docker compose logs -f                                                          # logs
-
+docker compose up --build                                                       # new build, use docker-compose.yml
 
 
 # processes
