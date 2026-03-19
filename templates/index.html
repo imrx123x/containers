@@ -9,6 +9,18 @@
 <body>
     <h1>Flask + PostgreSQL</h1>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="messages">
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
     <h2>Add user</h2>
     <form action="/add-user" method="post">
         <input type="text" name="name" placeholder="Enter name" required>
@@ -21,7 +33,15 @@
         <ul>
             {% for user in users %}
                 <li>
-                    <span>{{ user[0] }}: {{ user[1] }}</span>
+                    <div>
+                        <strong>{{ user[0] }}</strong>: {{ user[1] }}
+                    </div>
+
+                    <form action="/edit-user/{{ user[0] }}" method="post">
+                        <input type="text" name="name" value="{{ user[1] }}" required>
+                        <button type="submit">Save</button>
+                    </form>
+
                     <form action="/delete-user/{{ user[0] }}" method="post">
                         <button type="submit">Delete</button>
                     </form>
