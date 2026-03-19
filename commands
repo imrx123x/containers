@@ -1,0 +1,11 @@
+docker build -t docker_test_app .
+docker run --rm -p 5000:5000 docker_test_app                                    # -p port_on_my_comp:port_in_container
+docker run --rm -p 5001:5000 -v $(pwd):/app docker_test_app                     # without rerunning docker build
+docker compose up/down                                                          # use docker-compose.yml, reloads work
+docker compose up -d                                                            # same but in the background
+docker compose logs -f                                                          # logs
+
+
+
+# processes
+lsof -i :5000
