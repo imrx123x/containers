@@ -5,7 +5,7 @@ docker compose up/down                                                          
 docker compose up -d                                                            # same but in the background
 docker compose logs -f                                                          # logs
 docker compose up --build                                                       # new build, use docker-compose.yml
-
+docker compose down -v                                                          # -v deletes old psql data
 
 # processes
 lsof -i :5000
