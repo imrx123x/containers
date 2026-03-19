@@ -33,7 +33,7 @@ def wait_for_db():
         try:
             conn = get_db_connection()
             conn.close()
-            print("Database is ready")
+            print(f"Database is ready")
             return
         except psycopg2.OperationalError:
             print(f"Database not ready yet, retrying... ({i + 1}/10)")
