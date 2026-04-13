@@ -11,8 +11,8 @@ jobs:
     env:
       PYTHONPATH: .
       APP_ENV: test
-      INIT_DB_ON_START: "false"
       SECRET_KEY: test-secret
+      WAIT_FOR_DB_ON_START: "false"
 
     steps:
       - name: Checkout repository

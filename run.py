@@ -1,22 +1,17 @@
 import os
 
 from app import create_app
-from app.db import init_db, wait_for_db
+from app.db import wait_for_db
 
 app = create_app()
 
 
-def should_init_db() -> bool:
-    """
-    Pozwala sterować inicjalizacją bazy przez env.
-    Domyślnie włączone, ale można wyłączyć np. w testach.
-    """
-    return os.getenv("INIT_DB_ON_START", "true").lower() == "true"
+def should_wait_for_db() -> bool:
+    return os.getenv("WAIT_FOR_DB_ON_START", "true").lower() == "true"
 
 
-if should_init_db():
+if should_wait_for_db():
     wait_for_db()
-    init_db()
 
 
 if __name__ == "__main__":

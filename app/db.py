@@ -1,32 +1,29 @@
 import os
 import time
+
 import psycopg2
 
 
+def get_db_config():
+    return {
+        "host": os.getenv("DB_HOST", "db"),
+        "database": os.getenv("DB_NAME", "mydatabase"),
+        "user": os.getenv("DB_USER", "myuser"),
+        "password": os.getenv("DB_PASSWORD", "mypassword"),
+        "port": os.getenv("DB_PORT", "5432"),
+    }
+
+
 def get_db_connection():
-    return psycopg2.connect(
-        host=os.getenv("DB_HOST", "db"),
-        database=os.getenv("DB_NAME", "mydatabase"),
-        user=os.getenv("DB_USER", "myuser"),
-        password=os.getenv("DB_PASSWORD", "mypassword"),
-        port=os.getenv("DB_PORT", "5432"),
+    return psycopg2.connect(**get_db_config())
+
+
+def get_database_url() -> str:
+    cfg = get_db_config()
+    return (
+        f"postgresql+psycopg2://{cfg['user']}:{cfg['password']}"
+        f"@{cfg['host']}:{cfg['port']}/{cfg['database']}"
     )
-
-
-def init_db():
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(100) NOT NULL
-        );
-    """)
-
-    conn.commit()
-    cur.close()
-    conn.close()
 
 
 def wait_for_db(max_retries: int = 10, delay_seconds: int = 2):
@@ -44,9 +41,6 @@ def wait_for_db(max_retries: int = 10, delay_seconds: int = 2):
 
 
 def check_db_health() -> bool:
-    """
-    Lekki test połączenia do healthchecka.
-    """
     try:
         conn = get_db_connection()
         cur = conn.cursor()

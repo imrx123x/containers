@@ -11,7 +11,7 @@ services:
     environment:
       PYTHONPATH: /app
       APP_ENV: development
-      INIT_DB_ON_START: "true"
+      WAIT_FOR_DB_ON_START: "true"
     depends_on:
       db:
         condition: service_healthy
