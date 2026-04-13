@@ -1,18 +1,7 @@
 import os
-
 from app import create_app
-from app.db import wait_for_db, init_db
 
 app = create_app()
-
-
-def should_init_db() -> bool:
-    return os.getenv("INIT_DB_ON_START", "true").lower() == "true"
-
-
-if should_init_db():
-    wait_for_db()
-    init_db()
 
 
 if __name__ == "__main__":

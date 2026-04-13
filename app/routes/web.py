@@ -101,15 +101,7 @@ def assign_request_id():
 
 @web_bp.route("/health", methods=["GET"])
 def health():
-    db_ok = check_db_health()
-
-    response = {
-        "status": "ok" if db_ok else "degraded",
-        "database": "up" if db_ok else "down",
-    }
-
-    status_code = 200 if db_ok else 503
-    return jsonify(response), status_code
+    return jsonify({"status": "ok"}), 200
 
 
 @web_bp.route("/", methods=["GET"])
