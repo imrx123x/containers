@@ -9,3 +9,7 @@ docker compose down -v                                                          
 
 # processes
 lsof -i :5000
+
+# tests
+docker-compose run --rm app pytest                                              # run container with tests
+docker-compose run --rm -w /app -e PYTHONPATH=/app app pytest                   # if /app not found i container
