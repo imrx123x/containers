@@ -5,11 +5,11 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 
 from app.db import check_db_health
 from app.repository import (
-    get_all_users,
+    get_users_paginated,
     add_user_to_db,
     update_user_in_db,
     delete_user_from_db,
-    search_users,
+    search_users_paginated,
 )
 
 logging.basicConfig(
@@ -128,22 +128,35 @@ def health_db():
 @web_bp.route("/", methods=["GET"])
 def home():
     query = request.args.get("q", "").strip()
-
-    log_with_context("info", "Fetching users", query=query)
+    page = int(request.args.get("page", 1))
+    limit = 10
 
     try:
         if query:
-            users = search_users(query)
+            users, total = search_users_paginated(query, page, limit)
         else:
-            users = get_all_users()
+            users, total = get_users_paginated(page, limit)
 
-        log_with_context("info", "Users fetched successfully", users_count=len(users))
-        return render_template("index.html", users=users, query=query)
+        total_pages = (total + limit - 1) // limit
+
+        return render_template(
+            "index.html",
+            users=users,
+            query=query,
+            page=page,
+            total_pages=total_pages,
+        )
 
     except Exception:
-        log_with_context("exception", "Database error while fetching users")
-        flash("Database error while fetching users", "error")
-        return render_template("index.html", users=[], query=query)
+        flash("Database error", "error")
+        return render_template(
+            "index.html",
+            users=[],
+            query=query,
+            page=1,
+            total_pages=1,
+        )
+
 
 @web_bp.route("/add-user", methods=["POST"])
 def add_user():

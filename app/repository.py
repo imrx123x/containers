@@ -1,19 +1,71 @@
 from app.db import get_db_connection, ensure_db_ready
 
 
-def get_all_users():
+def get_users_paginated(page: int, limit: int):
     ensure_db_ready()
+
+    offset = (page - 1) * limit
 
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT id, name, email FROM users ORDER BY id;")
+    cur.execute(
+        """
+        SELECT id, name, email
+        FROM users
+        ORDER BY id
+        LIMIT %s OFFSET %s;
+        """,
+        (limit, offset),
+    )
     users = cur.fetchall()
+
+    cur.execute("SELECT COUNT(*) FROM users;")
+    total = cur.fetchone()[0]
 
     cur.close()
     conn.close()
 
-    return users
+    return users, total
+
+
+def search_users_paginated(query: str, page: int, limit: int):
+    ensure_db_ready()
+
+    offset = (page - 1) * limit
+    like_query = f"%{query.lower()}%"
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT id, name, email
+        FROM users
+        WHERE LOWER(name) LIKE %s
+           OR LOWER(COALESCE(email, '')) LIKE %s
+        ORDER BY id
+        LIMIT %s OFFSET %s;
+        """,
+        (like_query, like_query, limit, offset),
+    )
+    users = cur.fetchall()
+
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM users
+        WHERE LOWER(name) LIKE %s
+           OR LOWER(COALESCE(email, '')) LIKE %s;
+        """,
+        (like_query, like_query),
+    )
+    total = cur.fetchone()[0]
+
+    cur.close()
+    conn.close()
+
+    return users, total
 
 
 def get_user_by_id(user_id):
@@ -88,29 +140,3 @@ def delete_user_from_db(user_id):
     conn.close()
 
     return deleted_user
-
-def search_users(query):
-    ensure_db_ready()
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    like_query = f"%{query.lower()}%"
-
-    cur.execute(
-        """
-        SELECT id, name, email
-        FROM users
-        WHERE LOWER(name) LIKE %s
-           OR LOWER(COALESCE(email, '')) LIKE %s
-        ORDER BY id;
-        """,
-        (like_query, like_query),
-    )
-
-    users = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return users

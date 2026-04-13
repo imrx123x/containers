@@ -1,11 +1,11 @@
 from flask import Blueprint, request, jsonify
 from app.repository import (
-    get_all_users,
+    get_users_paginated,
+    search_users_paginated,
     get_user_by_id,
     add_user_to_db,
     update_user_in_db,
     delete_user_from_db,
-    search_users,
 )
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -32,18 +32,28 @@ def normalize_email(email_value):
 @api_bp.route("/users", methods=["GET"])
 def get_users():
     query = request.args.get("q")
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 10))
+
+    page = max(page, 1)
+    limit = min(max(limit, 1), 100)
 
     if query:
-        users = search_users(query)
+        users, total = search_users_paginated(query, page, limit)
     else:
-        users = get_all_users()
+        users, total = get_users_paginated(page, limit)
 
     users_data = [
         {"id": user_id, "name": name, "email": email}
         for user_id, name, email in users
     ]
 
-    return jsonify(users_data), 200
+    return jsonify({
+        "data": users_data,
+        "page": page,
+        "limit": limit,
+        "total": total,
+    }), 200
 
 
 @api_bp.route("/users/<int:user_id>", methods=["GET"])
@@ -69,21 +79,19 @@ def create_user():
         return jsonify({"error": "Name is required"}), 400
 
     if len(name) > 100:
-        return jsonify({"error": "Name must be at most 100 characters"}), 400
+        return jsonify({"error": "Name too long"}), 400
 
     email = normalize_email(data.get("email"))
 
     if data.get("email") is not None and email is None:
-        return jsonify({"error": "Email is invalid"}), 400
+        return jsonify({"error": "Email invalid"}), 400
 
-    try:
-        user = add_user_to_db(name, email)
-        return jsonify({
-            "message": "User created",
-            "user": {"id": user[0], "name": user[1], "email": user[2]}
-        }), 201
-    except Exception:
-        return jsonify({"error": "Database error"}), 500
+    user = add_user_to_db(name, email)
+
+    return jsonify({
+        "message": "User created",
+        "user": {"id": user[0], "name": user[1], "email": user[2]},
+    }), 201
 
 
 @api_bp.route("/users/<int:user_id>", methods=["PUT"])
@@ -98,36 +106,27 @@ def update_user(user_id):
     if not name:
         return jsonify({"error": "Name is required"}), 400
 
-    if len(name) > 100:
-        return jsonify({"error": "Name must be at most 100 characters"}), 400
-
     email = normalize_email(data.get("email"))
 
     if data.get("email") is not None and email is None:
-        return jsonify({"error": "Email is invalid"}), 400
+        return jsonify({"error": "Email invalid"}), 400
 
-    try:
-        updated_user = update_user_in_db(user_id, name, email)
+    user = update_user_in_db(user_id, name, email)
 
-        if not updated_user:
-            return jsonify({"error": "User not found"}), 404
+    if not user:
+        return jsonify({"error": "User not found"}), 404
 
-        return jsonify({
-            "message": "User updated",
-            "user": {"id": updated_user[0], "name": updated_user[1], "email": updated_user[2]}
-        }), 200
-    except Exception:
-        return jsonify({"error": "Database error"}), 500
+    return jsonify({
+        "message": "User updated",
+        "user": {"id": user[0], "name": user[1], "email": user[2]},
+    }), 200
 
 
 @api_bp.route("/users/<int:user_id>", methods=["DELETE"])
 def delete_user(user_id):
-    try:
-        deleted_user = delete_user_from_db(user_id)
+    deleted = delete_user_from_db(user_id)
 
-        if not deleted_user:
-            return jsonify({"error": "User not found"}), 404
+    if not deleted:
+        return jsonify({"error": "User not found"}), 404
 
-        return jsonify({"message": "User deleted", "id": deleted_user[0]}), 200
-    except Exception:
-        return jsonify({"error": "Database error"}), 500
+    return jsonify({"message": "User deleted", "id": deleted[0]}), 200

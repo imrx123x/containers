@@ -110,3 +110,14 @@ def test_search_users(client):
     assert response.get_json() == [
         {"id": 1, "name": "Anna", "email": "anna@example.com"}
     ]
+
+
+def test_pagination(client):
+    from unittest.mock import patch
+
+    fake_users = [(1, "Anna", "anna@example.com")]
+
+    with patch("app.routes.api.get_users_paginated", return_value=(fake_users, 1)):
+        response = client.get("/api/users?page=1&limit=10")
+
+    assert response.status_code == 200
