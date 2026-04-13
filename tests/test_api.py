@@ -8,15 +8,21 @@ def test_get_users(client):
     ]
 
     with patch(
-            "app.routes.api.get_users_paginated",
-            return_value=(fake_users, len(fake_users))
-    ):        response = client.get("/api/users")
+        "app.routes.api.get_users_paginated",
+        return_value=(fake_users, len(fake_users))
+    ):
+        response = client.get("/api/users")
 
     assert response.status_code == 200
-    assert response.get_json() == [
-        {"id": 1, "name": "Anna", "email": "anna@example.com"},
-        {"id": 2, "name": "Jan", "email": None},
-    ]
+    assert response.get_json() == {
+        "data": [
+            {"id": 1, "name": "Anna", "email": "anna@example.com"},
+            {"id": 2, "name": "Jan", "email": None},
+        ],
+        "page": 1,
+        "limit": 10,
+        "total": 2,
+    }
 
 
 def test_get_user_found(client):
@@ -24,7 +30,11 @@ def test_get_user_found(client):
         response = client.get("/api/users/1")
 
     assert response.status_code == 200
-    assert response.get_json() == {"id": 1, "name": "Anna", "email": "anna@example.com"}
+    assert response.get_json() == {
+        "id": 1,
+        "name": "Anna",
+        "email": "anna@example.com",
+    }
 
 
 def test_get_user_not_found(client):
@@ -86,6 +96,13 @@ def test_update_user_not_found(client):
     assert response.get_json() == {"error": "User not found"}
 
 
+def test_update_user_with_invalid_email(client):
+    response = client.put("/api/users/1", json={"name": "Kasia", "email": "zly-email"})
+
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Email is invalid"}
+
+
 def test_delete_user_success(client):
     with patch("app.routes.api.delete_user_from_db", return_value=(1,)):
         response = client.delete("/api/users/1")
@@ -103,25 +120,60 @@ def test_delete_user_not_found(client):
 
 
 def test_search_users(client):
-    from unittest.mock import patch
-
     fake_users = [(1, "Anna", "anna@example.com")]
 
     with patch(
         "app.routes.api.search_users_paginated",
-        return_value=(fake_users, len(fake_users))
+        return_value=(fake_users, 1)
     ):
         response = client.get("/api/users?q=anna")
 
     assert response.status_code == 200
+    assert response.get_json() == {
+        "data": [
+            {"id": 1, "name": "Anna", "email": "anna@example.com"}
+        ],
+        "page": 1,
+        "limit": 10,
+        "total": 1,
+    }
 
 
 def test_pagination(client):
-    from unittest.mock import patch
-
     fake_users = [(1, "Anna", "anna@example.com")]
 
-    with patch("app.routes.api.get_users_paginated", return_value=(fake_users, 1)):
+    with patch(
+        "app.routes.api.get_users_paginated",
+        return_value=(fake_users, 1)
+    ):
         response = client.get("/api/users?page=1&limit=10")
 
     assert response.status_code == 200
+    assert response.get_json() == {
+        "data": [
+            {"id": 1, "name": "Anna", "email": "anna@example.com"}
+        ],
+        "page": 1,
+        "limit": 10,
+        "total": 1,
+    }
+
+
+def test_pagination_with_custom_limit(client):
+    fake_users = [(1, "Anna", "anna@example.com")]
+
+    with patch(
+        "app.routes.api.get_users_paginated",
+        return_value=(fake_users, 1)
+    ):
+        response = client.get("/api/users?page=2&limit=5")
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "data": [
+            {"id": 1, "name": "Anna", "email": "anna@example.com"}
+        ],
+        "page": 2,
+        "limit": 5,
+        "total": 1,
+    }
