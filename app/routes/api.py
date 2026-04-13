@@ -29,7 +29,7 @@ def get_user(user_id):
 
 @api_bp.route("/users", methods=["POST"])
 def create_user():
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
     if not data or "name" not in data:
         return jsonify({"error": "Name is required"}), 400
@@ -54,7 +54,7 @@ def create_user():
 
 @api_bp.route("/users/<int:user_id>", methods=["PUT"])
 def update_user(user_id):
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
     if not data or "name" not in data:
         return jsonify({"error": "Name is required"}), 400

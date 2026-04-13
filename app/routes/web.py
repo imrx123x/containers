@@ -1,15 +1,15 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, g
+import logging
+import uuid
+
+from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify
+
+from app.db import check_db_health
 from app.repository import (
     get_all_users,
     add_user_to_db,
     update_user_in_db,
     delete_user_from_db,
 )
-import logging
-import uuid
-
-# Jeśli używasz Flask-Login, odkomentuj:
-# from flask_login import current_user
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,9 +33,6 @@ def get_actor():
     Zwraca identyfikator użytkownika wykonującego akcję.
     Jeśli nie masz jeszcze autha, zwraca 'anonymous'.
     """
-    # Jeśli używasz Flask-Login:
-    # if current_user.is_authenticated:
-    #     return f"id={current_user.id}"
     return "anonymous"
 
 
@@ -100,6 +97,19 @@ def log_with_context(level, message, **extra):
 def assign_request_id():
     """Nadaje unikalny ID każdemu requestowi."""
     g.request_id = str(uuid.uuid4())
+
+
+@web_bp.route("/health", methods=["GET"])
+def health():
+    db_ok = check_db_health()
+
+    response = {
+        "status": "ok" if db_ok else "degraded",
+        "database": "up" if db_ok else "down",
+    }
+
+    status_code = 200 if db_ok else 503
+    return jsonify(response), status_code
 
 
 @web_bp.route("/", methods=["GET"])

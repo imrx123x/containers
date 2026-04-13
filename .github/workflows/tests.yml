@@ -8,6 +8,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      PYTHONPATH: .
+      APP_ENV: test
+      INIT_DB_ON_START: "false"
+      SECRET_KEY: test-secret
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,6 +29,4 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run tests
-        env:
-          PYTHONPATH: .
         run: pytest -v

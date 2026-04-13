@@ -10,12 +10,13 @@ services:
       - .env
     environment:
       PYTHONPATH: /app
+      APP_ENV: development
+      INIT_DB_ON_START: "true"
     depends_on:
       db:
         condition: service_healthy
     command: >
-      sh -c "python -c 'from app.db import wait_for_db, init_db; wait_for_db(); init_db()'
-      && gunicorn -b 0.0.0.0:5000 run:app"
+      sh -c "gunicorn -b 0.0.0.0:5000 run:app"
 
   db:
     image: postgres:16
