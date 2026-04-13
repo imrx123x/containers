@@ -5,6 +5,7 @@ from app.repository import (
     add_user_to_db,
     update_user_in_db,
     delete_user_from_db,
+    search_users,
 )
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -30,11 +31,18 @@ def normalize_email(email_value):
 
 @api_bp.route("/users", methods=["GET"])
 def get_users():
-    users = get_all_users()
+    query = request.args.get("q")
+
+    if query:
+        users = search_users(query)
+    else:
+        users = get_all_users()
+
     users_data = [
         {"id": user_id, "name": name, "email": email}
         for user_id, name, email in users
     ]
+
     return jsonify(users_data), 200
 
 

@@ -88,3 +88,29 @@ def delete_user_from_db(user_id):
     conn.close()
 
     return deleted_user
+
+def search_users(query):
+    ensure_db_ready()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    like_query = f"%{query.lower()}%"
+
+    cur.execute(
+        """
+        SELECT id, name, email
+        FROM users
+        WHERE LOWER(name) LIKE %s
+           OR LOWER(COALESCE(email, '')) LIKE %s
+        ORDER BY id;
+        """,
+        (like_query, like_query),
+    )
+
+    users = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return users

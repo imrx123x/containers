@@ -98,3 +98,15 @@ def test_delete_user_not_found(client):
 
     assert response.status_code == 404
     assert response.get_json() == {"error": "User not found"}
+
+
+def test_search_users(client):
+    fake_users = [(1, "Anna", "anna@example.com")]
+
+    with patch("app.routes.api.search_users", return_value=fake_users):
+        response = client.get("/api/users?q=anna")
+
+    assert response.status_code == 200
+    assert response.get_json() == [
+        {"id": 1, "name": "Anna", "email": "anna@example.com"}
+    ]

@@ -9,6 +9,7 @@ from app.repository import (
     add_user_to_db,
     update_user_in_db,
     delete_user_from_db,
+    search_users,
 )
 
 logging.basicConfig(
@@ -126,17 +127,23 @@ def health_db():
 
 @web_bp.route("/", methods=["GET"])
 def home():
-    log_with_context("info", "Fetching all users")
+    query = request.args.get("q", "").strip()
+
+    log_with_context("info", "Fetching users", query=query)
 
     try:
-        users = get_all_users()
+        if query:
+            users = search_users(query)
+        else:
+            users = get_all_users()
+
         log_with_context("info", "Users fetched successfully", users_count=len(users))
-        return render_template("index.html", users=users)
+        return render_template("index.html", users=users, query=query)
+
     except Exception:
         log_with_context("exception", "Database error while fetching users")
         flash("Database error while fetching users", "error")
-        return render_template("index.html", users=[])
-
+        return render_template("index.html", users=[], query=query)
 
 @web_bp.route("/add-user", methods=["POST"])
 def add_user():
