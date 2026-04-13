@@ -1,5 +1,4 @@
 import os
-import time
 from urllib.parse import urlparse
 
 import psycopg2
@@ -13,6 +12,7 @@ def parse_database_url(database_url: str) -> dict:
         "user": parsed.username,
         "password": parsed.password,
         "port": parsed.port or 5432,
+        "sslmode": "require" if parsed.hostname and "render.com" in parsed.hostname else "prefer",
     }
 
 
@@ -51,18 +51,8 @@ def init_db():
     conn.close()
 
 
-def wait_for_db(max_retries: int = 10, delay_seconds: int = 2):
-    for i in range(max_retries):
-        try:
-            conn = get_db_connection()
-            conn.close()
-            print("Database is ready")
-            return
-        except psycopg2.OperationalError:
-            print(f"Database not ready yet, retrying... ({i + 1}/{max_retries})")
-            time.sleep(delay_seconds)
-
-    raise Exception("Database is not available")
+def ensure_db_ready():
+    init_db()
 
 
 def check_db_health() -> bool:

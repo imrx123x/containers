@@ -12,5 +12,3 @@ services:
         value: production
       - key: SECRET_KEY
         generateValue: true
-      - key: INIT_DB_ON_START
-        value: "true"

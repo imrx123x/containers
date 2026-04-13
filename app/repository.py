@@ -1,7 +1,9 @@
-from app.db import get_db_connection
+from app.db import get_db_connection, ensure_db_ready
 
 
 def get_all_users():
+    ensure_db_ready()
+
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -15,6 +17,8 @@ def get_all_users():
 
 
 def get_user_by_id(user_id):
+    ensure_db_ready()
+
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -28,6 +32,8 @@ def get_user_by_id(user_id):
 
 
 def add_user_to_db(name):
+    ensure_db_ready()
+
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -42,6 +48,8 @@ def add_user_to_db(name):
 
 
 def update_user_in_db(user_id, name):
+    ensure_db_ready()
+
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -59,6 +67,8 @@ def update_user_in_db(user_id, name):
 
 
 def delete_user_from_db(user_id):
+    ensure_db_ready()
+
     conn = get_db_connection()
     cur = conn.cursor()
 

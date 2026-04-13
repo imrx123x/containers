@@ -21,7 +21,6 @@ web_bp = Blueprint("web", __name__)
 
 
 def get_client_ip():
-    """Pobiera IP użytkownika, uwzględniając reverse proxy."""
     forwarded_for = request.headers.get("X-Forwarded-For", "")
     if forwarded_for:
         return forwarded_for.split(",")[0].strip()
@@ -29,15 +28,10 @@ def get_client_ip():
 
 
 def get_actor():
-    """
-    Zwraca identyfikator użytkownika wykonującego akcję.
-    Jeśli nie masz jeszcze autha, zwraca 'anonymous'.
-    """
     return "anonymous"
 
 
 def build_request_context():
-    """Buduje wspólny kontekst requestu do logów."""
     request_id = getattr(g, "request_id", None)
     if not request_id:
         request_id = str(uuid.uuid4())
@@ -55,7 +49,6 @@ def build_request_context():
 
 
 def log_with_context(level, message, **extra):
-    """Spójne logowanie z kontekstem requestu."""
     ctx = build_request_context()
     payload = {
         **ctx,
@@ -95,13 +88,22 @@ def log_with_context(level, message, **extra):
 
 @web_bp.before_app_request
 def assign_request_id():
-    """Nadaje unikalny ID każdemu requestowi."""
     g.request_id = str(uuid.uuid4())
 
 
 @web_bp.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"}), 200
+
+
+@web_bp.route("/health/db", methods=["GET"])
+def health_db():
+    db_ok = check_db_health()
+
+    if db_ok:
+        return jsonify({"status": "ok", "database": "up"}), 200
+
+    return jsonify({"status": "degraded", "database": "down"}), 503
 
 
 @web_bp.route("/", methods=["GET"])
