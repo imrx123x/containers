@@ -1,10 +1,27 @@
 import os
 import time
+from urllib.parse import urlparse
 
 import psycopg2
 
 
+def parse_database_url(database_url: str) -> dict:
+    parsed = urlparse(database_url)
+    return {
+        "host": parsed.hostname,
+        "database": parsed.path.lstrip("/"),
+        "user": parsed.username,
+        "password": parsed.password,
+        "port": parsed.port or 5432,
+    }
+
+
 def get_db_config():
+    database_url = os.getenv("DATABASE_URL")
+
+    if database_url:
+        return parse_database_url(database_url)
+
     return {
         "host": os.getenv("DB_HOST", "db"),
         "database": os.getenv("DB_NAME", "mydatabase"),
@@ -19,6 +36,12 @@ def get_db_connection():
 
 
 def get_database_url() -> str:
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        if database_url.startswith("postgres://"):
+            return database_url.replace("postgres://", "postgresql://", 1)
+        return database_url
+
     cfg = get_db_config()
     return (
         f"postgresql+psycopg2://{cfg['user']}:{cfg['password']}"

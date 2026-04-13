@@ -12,6 +12,8 @@ services:
       PYTHONPATH: /app
       APP_ENV: development
       WAIT_FOR_DB_ON_START: "true"
+      DB_HOST: db
+      DB_PORT: 5432
     depends_on:
       db:
         condition: service_healthy
@@ -22,12 +24,16 @@ services:
     image: postgres:16
     env_file:
       - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$DB_USER -d $$DB_NAME"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10

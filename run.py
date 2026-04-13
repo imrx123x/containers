@@ -7,7 +7,7 @@ app = create_app()
 
 
 def should_wait_for_db() -> bool:
-    return os.getenv("WAIT_FOR_DB_ON_START", "true").lower() == "true"
+    return os.getenv("WAIT_FOR_DB_ON_START", "false").lower() == "true"
 
 
 if should_wait_for_db():

@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: flask-users-app
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt -r requirements-dev.txt
+    preDeployCommand: alembic upgrade head
+    startCommand: gunicorn -b 0.0.0.0:$PORT run:app
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+
+      - key: SECRET_KEY
+        generateValue: true
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: flask-users-db
+          property: connectionString
+
+      - key: WAIT_FOR_DB_ON_START
+        value: "false"
+
+databases:
+  - name: flask-users-db
+    plan: free
+    region: frankfurt
+    databaseName: mydatabase
+    user: myuser
