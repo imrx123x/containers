@@ -1,6 +1,16 @@
 from app.db import get_db_connection, ensure_db_ready
 
 
+def _row_to_dict(row):
+    return {
+        "id": row[0],
+        "name": row[1],
+        "email": row[2],
+        "created_at": row[3],
+        "updated_at": row[4],
+    }
+
+
 def get_users_paginated(page: int, limit: int):
     ensure_db_ready()
 
@@ -11,14 +21,14 @@ def get_users_paginated(page: int, limit: int):
 
     cur.execute(
         """
-        SELECT id, name, email
+        SELECT id, name, email, created_at, updated_at
         FROM users
         ORDER BY id
         LIMIT %s OFFSET %s;
         """,
         (limit, offset),
     )
-    users = cur.fetchall()
+    users = [_row_to_dict(row) for row in cur.fetchall()]
 
     cur.execute("SELECT COUNT(*) FROM users;")
     total = cur.fetchone()[0]
@@ -40,7 +50,7 @@ def search_users_paginated(query: str, page: int, limit: int):
 
     cur.execute(
         """
-        SELECT id, name, email
+        SELECT id, name, email, created_at, updated_at
         FROM users
         WHERE LOWER(name) LIKE %s
            OR LOWER(COALESCE(email, '')) LIKE %s
@@ -49,7 +59,7 @@ def search_users_paginated(query: str, page: int, limit: int):
         """,
         (like_query, like_query, limit, offset),
     )
-    users = cur.fetchall()
+    users = [_row_to_dict(row) for row in cur.fetchall()]
 
     cur.execute(
         """
@@ -74,7 +84,25 @@ def get_user_by_id(user_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT id, name, email FROM users WHERE id = %s;", (user_id,))
+    cur.execute(
+        "SELECT id, name, email, created_at, updated_at FROM users WHERE id = %s;",
+        (user_id,),
+    )
+    row = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return _row_to_dict(row) if row else None
+
+
+def get_user_by_email(email):
+    ensure_db_ready()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id FROM users WHERE email = %s;", (email,))
     user = cur.fetchone()
 
     cur.close()
@@ -90,12 +118,16 @@ def add_user_to_db(name, email):
     cur = conn.cursor()
 
     cur.execute(
-        "INSERT INTO users (name, email) VALUES (%s, %s) RETURNING id, name, email;",
+        """
+        INSERT INTO users (name, email)
+        VALUES (%s, %s)
+        RETURNING id, name, email, created_at, updated_at;
+        """,
         (name, email),
     )
-    user = cur.fetchone()
-    conn.commit()
+    user = _row_to_dict(cur.fetchone())
 
+    conn.commit()
     cur.close()
     conn.close()
 
@@ -111,19 +143,21 @@ def update_user_in_db(user_id, name, email):
     cur.execute(
         """
         UPDATE users
-        SET name = %s, email = %s
+        SET name = %s,
+            email = %s,
+            updated_at = CURRENT_TIMESTAMP
         WHERE id = %s
-        RETURNING id, name, email;
+        RETURNING id, name, email, created_at, updated_at;
         """,
         (name, email, user_id),
     )
-    user = cur.fetchone()
-    conn.commit()
+    row = cur.fetchone()
 
+    conn.commit()
     cur.close()
     conn.close()
 
-    return user
+    return _row_to_dict(row) if row else None
 
 
 def delete_user_from_db(user_id):
@@ -133,10 +167,10 @@ def delete_user_from_db(user_id):
     cur = conn.cursor()
 
     cur.execute("DELETE FROM users WHERE id = %s RETURNING id;", (user_id,))
-    deleted_user = cur.fetchone()
-    conn.commit()
+    deleted = cur.fetchone()
 
+    conn.commit()
     cur.close()
     conn.close()
 
-    return deleted_user
+    return deleted

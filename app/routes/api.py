@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+
 from app.repository import (
     get_users_paginated,
     search_users_paginated,
@@ -6,27 +7,12 @@ from app.repository import (
     add_user_to_db,
     update_user_in_db,
     delete_user_from_db,
+    get_user_by_email,
 )
 
+from app.utils import normalize_email
+
 api_bp = Blueprint("api", __name__, url_prefix="/api")
-
-
-def normalize_email(email_value):
-    if email_value is None:
-        return None
-
-    email = email_value.strip().lower()
-
-    if not email:
-        return None
-
-    if "@" not in email or "." not in email.split("@")[-1]:
-        return None
-
-    if len(email) > 255:
-        return None
-
-    return email
 
 
 @api_bp.route("/users", methods=["GET"])
@@ -43,13 +29,8 @@ def get_users():
     else:
         users, total = get_users_paginated(page, limit)
 
-    users_data = [
-        {"id": user_id, "name": name, "email": email}
-        for user_id, name, email in users
-    ]
-
     return jsonify({
-        "data": users_data,
+        "data": users,
         "page": page,
         "limit": limit,
         "total": total,
@@ -63,7 +44,7 @@ def get_user(user_id):
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    return jsonify({"id": user[0], "name": user[1], "email": user[2]}), 200
+    return jsonify(user), 200
 
 
 @api_bp.route("/users", methods=["POST"])
@@ -85,11 +66,15 @@ def create_user():
 
     if data.get("email") is not None and email is None:
         return jsonify({"error": "Email is invalid"}), 400
+
+    if email and get_user_by_email(email):
+        return jsonify({"error": "Email already exists"}), 409
+
     user = add_user_to_db(name, email)
 
     return jsonify({
         "message": "User created",
-        "user": {"id": user[0], "name": user[1], "email": user[2]},
+        "user": user,
     }), 201
 
 
@@ -110,14 +95,20 @@ def update_user(user_id):
     if data.get("email") is not None and email is None:
         return jsonify({"error": "Email is invalid"}), 400
 
-    user = update_user_in_db(user_id, name, email)
-
-    if not user:
+    existing = get_user_by_id(user_id)
+    if not existing:
         return jsonify({"error": "User not found"}), 404
+
+    if email:
+        other = get_user_by_email(email)
+        if other and other[0] != user_id:
+            return jsonify({"error": "Email already exists"}), 409
+
+    user = update_user_in_db(user_id, name, email)
 
     return jsonify({
         "message": "User updated",
-        "user": {"id": user[0], "name": user[1], "email": user[2]},
+        "user": user,
     }), 200
 
 

@@ -42,13 +42,27 @@ def init_db():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
-            name VARCHAR(100) NOT NULL
+            name VARCHAR(100) NOT NULL,
+            email VARCHAR(255) UNIQUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+    """)
+
+    # safe upgrades (pseudo-migrations)
+    cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS email VARCHAR(255);
     """)
 
     cur.execute("""
         ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    """)
+
+    cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
     """)
 
     conn.commit()
