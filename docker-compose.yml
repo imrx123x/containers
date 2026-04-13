@@ -1,6 +1,7 @@
 services:
   app:
     build: .
+    working_dir: /app
     ports:
       - "5001:5000"
     volumes:
@@ -9,9 +10,12 @@ services:
       - .env
     environment:
       PYTHONPATH: /app
-      working_dir: /app
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "python -c 'from app.db import wait_for_db, init_db; wait_for_db(); init_db()'
+      && gunicorn -b 0.0.0.0:5000 run:app"
 
   db:
     image: postgres:16
@@ -21,6 +25,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$DB_USER -d $$DB_NAME"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   postgres_data:
