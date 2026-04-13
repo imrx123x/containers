@@ -1,8 +1,6 @@
-.idea
 .venv
-*.pyc
 __pycache__
+*.pyc
 .git
 .pytest_cache
-.env
-postgres_data
+.idea

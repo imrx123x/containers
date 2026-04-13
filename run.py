@@ -1,4 +1,8 @@
 from app import create_app
+from app.db import init_db, wait_for_db
+
+wait_for_db()
+init_db()
 
 app = create_app()
 
