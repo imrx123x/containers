@@ -31,29 +31,29 @@
     <h2>Users</h2>
 
     {% if users %}
-        <ul>
-            {% for user in users %}
-                <li>
-                    <div>
-                        <strong>{{ user[0] }}</strong>: {{ user[1] }}
-                        {% if user[2] %}
-                            <br>
-                            <small>{{ user[2] }}</small>
-                        {% endif %}
-                    </div>
+<ul>
+    {% for user in users %}
+        <li>
+            <div>
+                <strong>{{ user.id }}</strong>: {{ user.name }}
+                {% if user.email %}
+                    <br>
+                    <small>{{ user.email }}</small>
+                {% endif %}
+            </div>
 
-                    <form action="/edit-user/{{ user[0] }}" method="post">
-                        <input type="text" name="name" value="{{ user[1] }}" required>
-                        <input type="email" name="email" value="{{ user[2] or '' }}" placeholder="Enter email">
-                        <button type="submit">Save</button>
-                    </form>
+            <form action="/edit-user/{{ user.id }}" method="post">
+                <input type="text" name="name" value="{{ user.name }}" required>
+                <input type="email" name="email" value="{{ user.email or '' }}">
+                <button type="submit">Save</button>
+            </form>
 
-                    <form action="/delete-user/{{ user[0] }}" method="post">
-                        <button type="submit">Delete</button>
-                    </form>
-                </li>
-            {% endfor %}
-        </ul>
+            <form action="/delete-user/{{ user.id }}" method="post">
+                <button type="submit">Delete</button>
+            </form>
+        </li>
+    {% endfor %}
+</ul>
     {% else %}
         <p>No users in database</p>
     {% endif %}
