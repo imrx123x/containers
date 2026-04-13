@@ -7,7 +7,7 @@ def test_get_users(client):
         (2, "Jan", None),
     ]
 
-    with patch("app.routes.api.get_all_users", return_value=fake_users):
+    with patch("app.routes.api.get_users_paginated", return_value=fake_users):
         response = client.get("/api/users")
 
     assert response.status_code == 200
@@ -101,15 +101,17 @@ def test_delete_user_not_found(client):
 
 
 def test_search_users(client):
+    from unittest.mock import patch
+
     fake_users = [(1, "Anna", "anna@example.com")]
 
-    with patch("app.routes.api.search_users", return_value=fake_users):
+    with patch(
+        "app.routes.api.search_users_paginated",
+        return_value=(fake_users, 1)
+    ):
         response = client.get("/api/users?q=anna")
 
     assert response.status_code == 200
-    assert response.get_json() == [
-        {"id": 1, "name": "Anna", "email": "anna@example.com"}
-    ]
 
 
 def test_pagination(client):

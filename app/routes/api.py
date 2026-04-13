@@ -84,8 +84,7 @@ def create_user():
     email = normalize_email(data.get("email"))
 
     if data.get("email") is not None and email is None:
-        return jsonify({"error": "Email invalid"}), 400
-
+        return jsonify({"error": "Email is invalid"}), 400
     user = add_user_to_db(name, email)
 
     return jsonify({
@@ -109,7 +108,7 @@ def update_user(user_id):
     email = normalize_email(data.get("email"))
 
     if data.get("email") is not None and email is None:
-        return jsonify({"error": "Email invalid"}), 400
+        return jsonify({"error": "Email is invalid"}), 400
 
     user = update_user_in_db(user_id, name, email)
 
