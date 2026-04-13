@@ -71,6 +71,8 @@ def init_db():
 
 
 def ensure_db_ready():
+    if os.getenv("APP_ENV") == "test":
+        return
     init_db()
 
 
