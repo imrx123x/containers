@@ -2,24 +2,27 @@ from unittest.mock import patch
 
 
 def test_get_users(client):
-    fake_users = [(1, "Anna"), (2, "Jan")]
+    fake_users = [
+        (1, "Anna", "anna@example.com"),
+        (2, "Jan", None),
+    ]
 
     with patch("app.routes.api.get_all_users", return_value=fake_users):
         response = client.get("/api/users")
 
     assert response.status_code == 200
     assert response.get_json() == [
-        {"id": 1, "name": "Anna"},
-        {"id": 2, "name": "Jan"},
+        {"id": 1, "name": "Anna", "email": "anna@example.com"},
+        {"id": 2, "name": "Jan", "email": None},
     ]
 
 
 def test_get_user_found(client):
-    with patch("app.routes.api.get_user_by_id", return_value=(1, "Anna")):
+    with patch("app.routes.api.get_user_by_id", return_value=(1, "Anna", "anna@example.com")):
         response = client.get("/api/users/1")
 
     assert response.status_code == 200
-    assert response.get_json() == {"id": 1, "name": "Anna"}
+    assert response.get_json() == {"id": 1, "name": "Anna", "email": "anna@example.com"}
 
 
 def test_get_user_not_found(client):
@@ -31,13 +34,13 @@ def test_get_user_not_found(client):
 
 
 def test_create_user_success(client):
-    with patch("app.routes.api.add_user_to_db", return_value=(1, "Anna")):
-        response = client.post("/api/users", json={"name": "Anna"})
+    with patch("app.routes.api.add_user_to_db", return_value=(1, "Anna", "anna@example.com")):
+        response = client.post("/api/users", json={"name": "Anna", "email": "anna@example.com"})
 
     assert response.status_code == 201
     assert response.get_json() == {
         "message": "User created",
-        "user": {"id": 1, "name": "Anna"},
+        "user": {"id": 1, "name": "Anna", "email": "anna@example.com"},
     }
 
 
@@ -55,20 +58,27 @@ def test_create_user_with_blank_name(client):
     assert response.get_json() == {"error": "Name is required"}
 
 
+def test_create_user_with_invalid_email(client):
+    response = client.post("/api/users", json={"name": "Anna", "email": "zly-email"})
+
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Email is invalid"}
+
+
 def test_update_user_success(client):
-    with patch("app.routes.api.update_user_in_db", return_value=(1, "Kasia")):
-        response = client.put("/api/users/1", json={"name": "Kasia"})
+    with patch("app.routes.api.update_user_in_db", return_value=(1, "Kasia", "kasia@example.com")):
+        response = client.put("/api/users/1", json={"name": "Kasia", "email": "kasia@example.com"})
 
     assert response.status_code == 200
     assert response.get_json() == {
         "message": "User updated",
-        "user": {"id": 1, "name": "Kasia"},
+        "user": {"id": 1, "name": "Kasia", "email": "kasia@example.com"},
     }
 
 
 def test_update_user_not_found(client):
     with patch("app.routes.api.update_user_in_db", return_value=None):
-        response = client.put("/api/users/999", json={"name": "Kasia"})
+        response = client.put("/api/users/999", json={"name": "Kasia", "email": "kasia@example.com"})
 
     assert response.status_code == 404
     assert response.get_json() == {"error": "User not found"}

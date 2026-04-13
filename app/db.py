@@ -46,6 +46,11 @@ def init_db():
         );
     """)
 
+    cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+    """)
+
     conn.commit()
     cur.close()
     conn.close()

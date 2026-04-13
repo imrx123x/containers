@@ -24,6 +24,7 @@
     <h2>Add user</h2>
     <form action="/add-user" method="post">
         <input type="text" name="name" placeholder="Enter name" required>
+        <input type="email" name="email" placeholder="Enter email">
         <button type="submit">Add</button>
     </form>
 
@@ -35,10 +36,15 @@
                 <li>
                     <div>
                         <strong>{{ user[0] }}</strong>: {{ user[1] }}
+                        {% if user[2] %}
+                            <br>
+                            <small>{{ user[2] }}</small>
+                        {% endif %}
                     </div>
 
                     <form action="/edit-user/{{ user[0] }}" method="post">
                         <input type="text" name="name" value="{{ user[1] }}" required>
+                        <input type="email" name="email" value="{{ user[2] or '' }}" placeholder="Enter email">
                         <button type="submit">Save</button>
                     </form>
 

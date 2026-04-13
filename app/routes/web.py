@@ -20,6 +20,24 @@ logger = logging.getLogger(__name__)
 web_bp = Blueprint("web", __name__)
 
 
+def normalize_email(email_value):
+    if email_value is None:
+        return None
+
+    email = email_value.strip().lower()
+
+    if not email:
+        return None
+
+    if "@" not in email or "." not in email.split("@")[-1]:
+        return None
+
+    if len(email) > 255:
+        return None
+
+    return email
+
+
 def get_client_ip():
     forwarded_for = request.headers.get("X-Forwarded-For", "")
     if forwarded_for:
@@ -123,7 +141,10 @@ def home():
 @web_bp.route("/add-user", methods=["POST"])
 def add_user():
     name = request.form.get("name", "").strip()
-    log_with_context("info", "Received add user request", submitted_name=name)
+    raw_email = request.form.get("email", "")
+    email = normalize_email(raw_email)
+
+    log_with_context("info", "Received add user request", submitted_name=name, submitted_email=raw_email)
 
     if not name:
         log_with_context("warning", "Add user failed: empty name")
@@ -135,12 +156,17 @@ def add_user():
         flash("Name must be at most 100 characters", "error")
         return redirect(url_for("web.home"))
 
+    if raw_email.strip() and email is None:
+        log_with_context("warning", "Add user failed: invalid email", submitted_email=raw_email)
+        flash("Email is invalid", "error")
+        return redirect(url_for("web.home"))
+
     try:
-        user = add_user_to_db(name)
+        user = add_user_to_db(name, email)
         log_with_context("info", "User added successfully", created_user=user)
         flash("User added successfully", "success")
     except Exception:
-        log_with_context("exception", "Database error while adding user", submitted_name=name)
+        log_with_context("exception", "Database error while adding user", submitted_name=name, submitted_email=raw_email)
         flash("Database error while adding user", "error")
 
     return redirect(url_for("web.home"))
@@ -149,11 +175,15 @@ def add_user():
 @web_bp.route("/edit-user/<int:user_id>", methods=["POST"])
 def edit_user(user_id):
     name = request.form.get("name", "").strip()
+    raw_email = request.form.get("email", "")
+    email = normalize_email(raw_email)
+
     log_with_context(
         "info",
         "Received edit user request",
         target_user_id=user_id,
-        new_name=name
+        new_name=name,
+        new_email=raw_email,
     )
 
     if not name:
@@ -171,8 +201,13 @@ def edit_user(user_id):
         flash("Name must be at most 100 characters", "error")
         return redirect(url_for("web.home"))
 
+    if raw_email.strip() and email is None:
+        log_with_context("warning", "Edit user failed: invalid email", target_user_id=user_id, attempted_email=raw_email)
+        flash("Email is invalid", "error")
+        return redirect(url_for("web.home"))
+
     try:
-        updated_user = update_user_in_db(user_id, name)
+        updated_user = update_user_in_db(user_id, name, email)
 
         if not updated_user:
             log_with_context("warning", "User not found for update", target_user_id=user_id)
@@ -190,7 +225,8 @@ def edit_user(user_id):
             "exception",
             "Database error while updating user",
             target_user_id=user_id,
-            attempted_name=name
+            attempted_name=name,
+            attempted_email=raw_email,
         )
         flash("Database error while updating user", "error")
 
