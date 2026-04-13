@@ -35,18 +35,20 @@ def get_db_connection():
     return psycopg2.connect(**get_db_config())
 
 
-def get_database_url() -> str:
-    database_url = os.getenv("DATABASE_URL")
-    if database_url:
-        if database_url.startswith("postgres://"):
-            return database_url.replace("postgres://", "postgresql://", 1)
-        return database_url
+def init_db():
+    conn = get_db_connection()
+    cur = conn.cursor()
 
-    cfg = get_db_config()
-    return (
-        f"postgresql+psycopg2://{cfg['user']}:{cfg['password']}"
-        f"@{cfg['host']}:{cfg['port']}/{cfg['database']}"
-    )
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL
+        );
+    """)
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 def wait_for_db(max_retries: int = 10, delay_seconds: int = 2):
