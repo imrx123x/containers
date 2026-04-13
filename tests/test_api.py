@@ -109,7 +109,7 @@ def test_search_users(client):
 
     with patch(
         "app.routes.api.search_users_paginated",
-        return_value=(fake_users, 1)
+        return_value=(fake_users, len(fake_users))
     ):
         response = client.get("/api/users?q=anna")
 
