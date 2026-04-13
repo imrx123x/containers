@@ -7,7 +7,7 @@ def test_get_users(client):
         (2, "Jan", None),
     ]
 
-    with patch("app.routes.api.get_users_paginated", return_value=fake_users):
+    with patch("app.routes.api.get_users_paginated", return_value=(fake_users, len(fake_users))):
         response = client.get("/api/users")
 
     assert response.status_code == 200
