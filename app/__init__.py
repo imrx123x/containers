@@ -9,6 +9,7 @@ from app.logging import log
 from app.routes.api import api_bp
 from app.routes.auth import auth_bp
 from app.routes.web import web_bp
+from app.swagger import init_swagger
 
 
 def create_app():
@@ -56,6 +57,7 @@ def create_app():
     app.register_blueprint(api_bp)
     app.register_blueprint(auth_bp)
 
+    init_swagger(app)
     register_error_handlers(app)
 
     return app

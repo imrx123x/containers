@@ -35,6 +35,64 @@ def _serialize_user(user):
 @api_bp.route("/users", methods=["GET"])
 @auth_required
 def get_users():
+    """
+    Get users list
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - in: query
+        name: q
+        type: string
+        required: false
+        description: Search query by name or email
+      - in: query
+        name: page
+        type: integer
+        required: false
+        default: 1
+      - in: query
+        name: limit
+        type: integer
+        required: false
+        default: 10
+    responses:
+      200:
+        description: Users list
+        schema:
+          type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  name:
+                    type: string
+                    example: Anna
+                  email:
+                    type: string
+                    example: anna@example.com
+                  role:
+                    type: string
+                    example: user
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 5
+      401:
+        description: Unauthorized
+    """
     query = request.args.get("q")
 
     from app.utils_params import parse_positive_int
@@ -70,6 +128,42 @@ def get_users():
 @api_bp.route("/users/<int:user_id>", methods=["GET"])
 @auth_required
 def get_user(user_id):
+    """
+    Get single user
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: user_id
+        type: integer
+        required: true
+        description: User ID
+    responses:
+      200:
+        description: Single user
+        schema:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Anna
+            email:
+              type: string
+              example: anna@example.com
+            role:
+              type: string
+              example: user
+      401:
+        description: Unauthorized
+      404:
+        description: User not found
+    """
     log("info", "Fetching single user", user_id=user_id)
 
     user = get_user_by_id_service(user_id)
@@ -80,6 +174,50 @@ def get_user(user_id):
 @api_bp.route("/users", methods=["POST"])
 @admin_required
 def create_user():
+    """
+    Create a new user
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              example: Anna
+            email:
+              type: string
+              example: anna@example.com
+    responses:
+      201:
+        description: User created
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: User created
+            user:
+              type: object
+      400:
+        description: Validation error
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden
+      409:
+        description: Email already exists
+    """
     data = request.get_json(silent=True) or {}
 
     user = create_user_service(
@@ -100,6 +238,57 @@ def create_user():
 @api_bp.route("/users/<int:user_id>", methods=["PUT"])
 @admin_required
 def update_user(user_id):
+    """
+    Update user
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    consumes:
+      - application/json
+    parameters:
+      - in: path
+        name: user_id
+        type: integer
+        required: true
+        description: User ID
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              example: Anna Kowalska
+            email:
+              type: string
+              example: anna@example.com
+    responses:
+      200:
+        description: User updated
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: User updated
+            user:
+              type: object
+      400:
+        description: Validation error
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden
+      404:
+        description: User not found
+      409:
+        description: Email already exists
+    """
     data = request.get_json(silent=True) or {}
 
     if "name" not in data:
@@ -124,6 +313,38 @@ def update_user(user_id):
 @api_bp.route("/users/<int:user_id>", methods=["DELETE"])
 @admin_required
 def delete_user(user_id):
+    """
+    Delete user
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: user_id
+        type: integer
+        required: true
+        description: User ID
+    responses:
+      200:
+        description: User deleted
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: User deleted
+            id:
+              type: integer
+              example: 1
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden
+      404:
+        description: User not found
+    """
     log("info", "Delete user request", user_id=user_id)
 
     deleted = delete_user_service(user_id)

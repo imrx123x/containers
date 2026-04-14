@@ -27,6 +27,65 @@ def _serialize_user(user):
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
+    """
+    Register a new user
+    ---
+    tags:
+      - Auth
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - name
+            - email
+            - password
+          properties:
+            name:
+              type: string
+              example: Anna
+            email:
+              type: string
+              example: anna@example.com
+            password:
+              type: string
+              example: supersecret123
+    responses:
+      201:
+        description: Registration successful
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Registration successful
+            access_token:
+              type: string
+              example: some-generated-token
+            user:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 1
+                name:
+                  type: string
+                  example: Anna
+                email:
+                  type: string
+                  example: anna@example.com
+                role:
+                  type: string
+                  example: user
+      400:
+        description: Validation error
+      409:
+        description: Email already exists
+    """
     enforce_rate_limit(
         action="auth_register",
         limit=5,
@@ -56,6 +115,59 @@ def register():
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
+    """
+    Login user
+    ---
+    tags:
+      - Auth
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+            - password
+          properties:
+            email:
+              type: string
+              example: anna@example.com
+            password:
+              type: string
+              example: supersecret123
+    responses:
+      200:
+        description: Login successful
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Login successful
+            access_token:
+              type: string
+              example: some-generated-token
+            user:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 1
+                name:
+                  type: string
+                  example: Anna
+                email:
+                  type: string
+                  example: anna@example.com
+                role:
+                  type: string
+                  example: user
+      401:
+        description: Invalid credentials
+    """
     enforce_rate_limit(
         action="auth_login",
         limit=10,
@@ -85,6 +197,34 @@ def login():
 @auth_bp.route("/me", methods=["GET"])
 @auth_required
 def me():
+    """
+    Get current user profile
+    ---
+    tags:
+      - Auth
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Current authenticated user
+        schema:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Anna
+            email:
+              type: string
+              example: anna@example.com
+            role:
+              type: string
+              example: user
+      401:
+        description: Unauthorized
+    """
     log("info", "Fetched current user", user_id=g.current_user["id"])
     return jsonify(_serialize_user(g.current_user)), 200
 
@@ -92,6 +232,46 @@ def me():
 @auth_bp.route("/me", methods=["PATCH"])
 @auth_required
 def update_me():
+    """
+    Update current user profile
+    ---
+    tags:
+      - Auth
+    security:
+      - Bearer: []
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              example: Anna Kowalska
+            email:
+              type: string
+              example: anna@example.com
+    responses:
+      200:
+        description: Profile updated
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Profile updated
+            user:
+              type: object
+      400:
+        description: Validation error
+      401:
+        description: Unauthorized
+      409:
+        description: Email already exists
+    """
     data = request.get_json(silent=True) or {}
 
     user = update_current_user_service(
@@ -115,6 +295,49 @@ def update_me():
 @auth_bp.route("/change-password", methods=["POST"])
 @auth_required
 def change_password():
+    """
+    Change current user password
+    ---
+    tags:
+      - Auth
+    security:
+      - Bearer: []
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - current_password
+            - new_password
+          properties:
+            current_password:
+              type: string
+              example: oldpass123
+            new_password:
+              type: string
+              example: newpass123
+    responses:
+      200:
+        description: Password changed successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Password changed successfully
+            user:
+              type: object
+      400:
+        description: Validation error
+      401:
+        description: Unauthorized
+      404:
+        description: User not found
+    """
     enforce_rate_limit(
         action="auth_change_password",
         limit=5,
