@@ -237,3 +237,41 @@ def delete_user_from_db(user_id):
     conn.close()
 
     return deleted
+
+
+def get_dashboard_stats():
+    ensure_db_ready()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT COUNT(*) FROM users;")
+    total_users = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM users WHERE role = 'admin';")
+    total_admins = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM users WHERE role = 'user';")
+    total_regular_users = cur.fetchone()[0]
+
+    cur.execute(
+        """
+        SELECT id, name, email, role, created_at, updated_at
+        FROM users
+        ORDER BY id DESC
+        LIMIT 1;
+        """
+    )
+    latest_user_row = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    latest_user = _row_to_dict(latest_user_row) if latest_user_row else None
+
+    return {
+        "total_users": total_users,
+        "total_admins": total_admins,
+        "total_regular_users": total_regular_users,
+        "latest_user": latest_user,
+    }

@@ -77,7 +77,37 @@
             <h2>Panel administratora</h2>
             <p>Tutaj możesz dodawać, edytować i usuwać użytkowników.</p>
         </div>
+{% if stats %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-title">Wszyscy użytkownicy</div>
+        <div class="stat-value">{{ stats.total_users }}</div>
+    </div>
 
+    <div class="stat-card">
+        <div class="stat-title">Admini</div>
+        <div class="stat-value">{{ stats.total_admins }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-title">Zwykli użytkownicy</div>
+        <div class="stat-value">{{ stats.total_regular_users }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-title">Ostatni użytkownik</div>
+        {% if stats.latest_user %}
+            <div class="stat-value small">
+                {{ stats.latest_user.name }}
+                <br>
+                <small>{{ stats.latest_user.email }}</small>
+            </div>
+        {% else %}
+            <div class="stat-value small">Brak danych</div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
         <div class="card">
             <h2>Add user</h2>
             <form action="/add-user" method="post" class="stack-form">

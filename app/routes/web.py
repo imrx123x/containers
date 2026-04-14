@@ -14,8 +14,9 @@ from app.logging import log
 from app.repository import (
     add_user_to_db,
     delete_user_from_db,
-    get_users_paginated,
+    get_dashboard_stats,
     get_user_by_id,
+    get_users_paginated,
     search_users_paginated,
     update_user_in_db,
 )
@@ -107,6 +108,7 @@ def home():
             query="",
             page=1,
             total_pages=1,
+            stats=None,
         )
 
     query = request.args.get("q", "").strip()
@@ -129,6 +131,7 @@ def home():
         ]
 
         total_pages = max(1, (total + limit - 1) // limit)
+        stats = get_dashboard_stats()
 
         return render_template(
             "index.html",
@@ -138,6 +141,7 @@ def home():
             query=query,
             page=page,
             total_pages=total_pages,
+            stats=stats,
         )
 
     except Exception:
@@ -152,6 +156,7 @@ def home():
             query=query,
             page=1,
             total_pages=1,
+            stats=None,
         )
 
 
