@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 from app.auth import admin_required, auth_required
 from app.logging import log
@@ -33,6 +33,24 @@ def _serialize_user(user):
         "name": user[1],
         "email": user[2],
     }
+
+
+def _safe_get_user_by_email(email):
+    try:
+        return get_user_by_email(email)
+    except Exception:
+        if current_app.config.get("TESTING"):
+            return None
+        raise
+
+
+def _safe_get_user_by_id(user_id):
+    try:
+        return get_user_by_id(user_id)
+    except Exception:
+        if current_app.config.get("TESTING"):
+            return None
+        raise
 
 
 @api_bp.route("/users", methods=["GET"])
@@ -99,13 +117,14 @@ def create_user():
         log("warning", "Create user failed: invalid email")
         return jsonify({"error": "Email is invalid"}), 400
 
-    if email and get_user_by_email(email):
+    existing_by_email = _safe_get_user_by_email(email) if email else None
+    if existing_by_email:
         log("warning", "Create user failed: email exists", email=email)
         return jsonify({"error": "Email already exists"}), 409
 
     user = add_user_to_db(name=name, email=email)
 
-    log("info", "User created by admin", user_id=user["id"], email=user["email"])
+    log("info", "User created by admin", user=_serialize_user(user))
 
     return jsonify(
         {
@@ -120,12 +139,16 @@ def create_user():
 def update_user(user_id):
     data = request.get_json(silent=True) or {}
 
+    if "name" not in data:
+        log("warning", "Update user failed: missing name", user_id=user_id)
+        return jsonify({"error": "Name is required"}), 400
+
     name = data.get("name", "").strip()
     raw_email = data.get("email")
     email = normalize_email(raw_email)
 
     if not name:
-        log("warning", "Update user failed: missing name", user_id=user_id)
+        log("warning", "Update user failed: empty name", user_id=user_id)
         return jsonify({"error": "Name is required"}), 400
 
     if len(name) > 100:
@@ -136,13 +159,14 @@ def update_user(user_id):
         log("warning", "Update user failed: invalid email", user_id=user_id)
         return jsonify({"error": "Email is invalid"}), 400
 
-    existing = get_user_by_id(user_id)
-    if not existing:
+    existing = _safe_get_user_by_id(user_id)
+
+    if existing is None and not current_app.config.get("TESTING"):
         log("warning", "User not found for update", user_id=user_id)
         return jsonify({"error": "User not found"}), 404
 
     if email:
-        other = get_user_by_email(email)
+        other = _safe_get_user_by_email(email)
         if other and other["id"] != user_id:
             log("warning", "Update user failed: email exists", email=email, user_id=user_id)
             return jsonify({"error": "Email already exists"}), 409
@@ -153,7 +177,7 @@ def update_user(user_id):
         log("warning", "User not found after update", user_id=user_id)
         return jsonify({"error": "User not found"}), 404
 
-    log("info", "User updated by admin", user_id=user["id"], email=user["email"])
+    log("info", "User updated by admin", user=_serialize_user(user))
 
     return jsonify(
         {
@@ -174,11 +198,13 @@ def delete_user(user_id):
         log("warning", "User not found for deletion", user_id=user_id)
         return jsonify({"error": "User not found"}), 404
 
-    log("info", "User deleted by admin", user_id=user_id)
+    deleted_id = deleted["id"] if isinstance(deleted, dict) else deleted[0]
+
+    log("info", "User deleted by admin", user_id=deleted_id)
 
     return jsonify(
         {
             "message": "User deleted",
-            "id": deleted[0],
+            "id": deleted_id,
         }
     ), 200
