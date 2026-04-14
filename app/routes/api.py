@@ -206,3 +206,9 @@ def delete_user(user_id):
         "message": "User deleted",
         "id": deleted[0],
     }), 200
+
+# test log
+@api_bp.route("/test-log")
+def test_log():
+    log("info", "Test log working")
+    return {"ok": True}

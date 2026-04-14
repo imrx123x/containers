@@ -9,7 +9,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 )
 
-logger = logging.getLogger("app")
+logger = logging.getLogger("gunicorn.error")
 
 
 def get_client_ip():
