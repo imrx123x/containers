@@ -43,16 +43,27 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             name VARCHAR(100) NOT NULL,
-            email VARCHAR(255) UNIQUE,
+            email VARCHAR(255),
+            password_hash TEXT,
+            role VARCHAR(20) NOT NULL DEFAULT 'user',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
 
-    # safe upgrades (pseudo-migrations)
     cur.execute("""
         ALTER TABLE users
         ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+    """)
+
+    cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS password_hash TEXT;
+    """)
+
+    cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';
     """)
 
     cur.execute("""
@@ -63,6 +74,18 @@ def init_db():
     cur.execute("""
         ALTER TABLE users
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    """)
+
+    cur.execute("""
+        UPDATE users
+        SET role = 'user'
+        WHERE role IS NULL;
+    """)
+
+    cur.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx
+        ON users (LOWER(email))
+        WHERE email IS NOT NULL;
     """)
 
     conn.commit()

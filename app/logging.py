@@ -1,15 +1,17 @@
 import logging
 import uuid
 
-from flask import request, g
+from flask import g, request
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-)
 
 logger = logging.getLogger("gunicorn.error")
+
+if not logger.handlers:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    )
+    logger = logging.getLogger()
 
 
 def get_client_ip():
@@ -20,6 +22,17 @@ def get_client_ip():
 
 
 def get_actor():
+    current_user = getattr(g, "current_user", None)
+
+    if isinstance(current_user, dict):
+        email = current_user.get("email")
+        user_id = current_user.get("id")
+
+        if email:
+            return email
+        if user_id is not None:
+            return f"user:{user_id}"
+
     return "anonymous"
 
 
@@ -53,9 +66,18 @@ def log(level, message, **extra):
         f"{message}"
     )
 
-    reserved = {"request_id", "method", "path", "ip", "actor"}
+    reserved = {
+        "request_id",
+        "method",
+        "path",
+        "ip",
+        "actor",
+    }
+
     extra_parts = [
-        f"{k}={v}" for k, v in payload.items() if k not in reserved
+        f"{key}={value}"
+        for key, value in payload.items()
+        if key not in reserved
     ]
 
     if extra_parts:

@@ -1,19 +1,16 @@
 import os
 import uuid
 
-from flask import Flask, jsonify, g, request
+from flask import Flask, g, jsonify, request
 
-from app.routes.web import web_bp
-from app.routes.api import api_bp
 from app.logging import log
+from app.routes.api import api_bp
+from app.routes.auth import auth_bp
+from app.routes.web import web_bp
 
 
 def create_app():
     app = Flask(__name__)
-
-    # ========================
-    # Config
-    # ========================
 
     secret_key = os.getenv("SECRET_KEY")
     app_env = os.getenv("APP_ENV", "development").lower()
@@ -25,17 +22,9 @@ def create_app():
     app.config["SECRET_KEY"] = secret_key or "dev-secret-key"
     app.config["JSON_SORT_KEYS"] = False
 
-    # ========================
-    # Request ID (global)
-    # ========================
-
     @app.before_request
     def assign_request_id():
         g.request_id = str(uuid.uuid4())
-
-    # ========================
-    # Logging response (API + WEB)
-    # ========================
 
     @app.after_request
     def log_response(response):
@@ -48,21 +37,13 @@ def create_app():
                 path=request.path,
             )
         except Exception:
-            # logging nigdy nie może rozwalić requestu
             pass
 
         return response
 
-    # ========================
-    # Blueprints
-    # ========================
-
     app.register_blueprint(web_bp)
     app.register_blueprint(api_bp)
-
-    # ========================
-    # Error handlers
-    # ========================
+    app.register_blueprint(auth_bp)
 
     register_error_handlers(app)
 

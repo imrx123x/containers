@@ -1,4 +1,4 @@
-from app.db import get_db_connection, ensure_db_ready
+from app.db import ensure_db_ready, get_db_connection
 
 
 def _row_to_dict(row):
@@ -6,8 +6,21 @@ def _row_to_dict(row):
         "id": row[0],
         "name": row[1],
         "email": row[2],
-        "created_at": row[3],
-        "updated_at": row[4],
+        "role": row[3],
+        "created_at": row[4],
+        "updated_at": row[5],
+    }
+
+
+def _row_to_auth_dict(row):
+    return {
+        "id": row[0],
+        "name": row[1],
+        "email": row[2],
+        "password_hash": row[3],
+        "role": row[4],
+        "created_at": row[5],
+        "updated_at": row[6],
     }
 
 
@@ -21,7 +34,7 @@ def get_users_paginated(page: int, limit: int):
 
     cur.execute(
         """
-        SELECT id, name, email, created_at, updated_at
+        SELECT id, name, email, role, created_at, updated_at
         FROM users
         ORDER BY id
         LIMIT %s OFFSET %s;
@@ -50,7 +63,7 @@ def search_users_paginated(query: str, page: int, limit: int):
 
     cur.execute(
         """
-        SELECT id, name, email, created_at, updated_at
+        SELECT id, name, email, role, created_at, updated_at
         FROM users
         WHERE LOWER(name) LIKE %s
            OR LOWER(COALESCE(email, '')) LIKE %s
@@ -85,7 +98,11 @@ def get_user_by_id(user_id):
     cur = conn.cursor()
 
     cur.execute(
-        "SELECT id, name, email, created_at, updated_at FROM users WHERE id = %s;",
+        """
+        SELECT id, name, email, role, created_at, updated_at
+        FROM users
+        WHERE id = %s;
+        """,
         (user_id,),
     )
     row = cur.fetchone()
@@ -96,22 +113,43 @@ def get_user_by_id(user_id):
     return _row_to_dict(row) if row else None
 
 
-def get_user_by_email(email):
+def get_user_by_email(email, include_password=False):
     ensure_db_ready()
 
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT id FROM users WHERE email = %s;", (email,))
-    user = cur.fetchone()
+    if include_password:
+        cur.execute(
+            """
+            SELECT id, name, email, password_hash, role, created_at, updated_at
+            FROM users
+            WHERE LOWER(email) = LOWER(%s);
+            """,
+            (email,),
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        return _row_to_auth_dict(row) if row else None
+
+    cur.execute(
+        """
+        SELECT id, name, email, role, created_at, updated_at
+        FROM users
+        WHERE LOWER(email) = LOWER(%s);
+        """,
+        (email,),
+    )
+    row = cur.fetchone()
 
     cur.close()
     conn.close()
 
-    return user
+    return _row_to_dict(row) if row else None
 
 
-def add_user_to_db(name, email):
+def add_user_to_db(name, email, password_hash=None, role="user"):
     ensure_db_ready()
 
     conn = get_db_connection()
@@ -119,11 +157,11 @@ def add_user_to_db(name, email):
 
     cur.execute(
         """
-        INSERT INTO users (name, email)
-        VALUES (%s, %s)
-        RETURNING id, name, email, created_at, updated_at;
+        INSERT INTO users (name, email, password_hash, role)
+        VALUES (%s, %s, %s, %s)
+        RETURNING id, name, email, role, created_at, updated_at;
         """,
-        (name, email),
+        (name, email, password_hash, role),
     )
     user = _row_to_dict(cur.fetchone())
 
@@ -147,7 +185,7 @@ def update_user_in_db(user_id, name, email):
             email = %s,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = %s
-        RETURNING id, name, email, created_at, updated_at;
+        RETURNING id, name, email, role, created_at, updated_at;
         """,
         (name, email, user_id),
     )
