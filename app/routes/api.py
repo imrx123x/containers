@@ -36,11 +36,21 @@ def _serialize_user(user):
 @auth_required
 def get_users():
     query = request.args.get("q")
-    page = int(request.args.get("page", 1))
-    limit = int(request.args.get("limit", 10))
 
-    page = max(page, 1)
-    limit = min(max(limit, 1), 100)
+    from app.utils_params import parse_positive_int
+    page = parse_positive_int(
+        request.args.get("page"),
+        default=1,
+        field_name="page",
+    )
+
+    limit = parse_positive_int(
+        request.args.get("limit"),
+        default=10,
+        field_name="limit",
+        min_value=1,
+        max_value=100,
+    )
 
     log("info", "Fetching users", query=query, page=page, limit=limit)
 
