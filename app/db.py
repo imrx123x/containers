@@ -88,6 +88,49 @@ def init_db():
         WHERE email IS NOT NULL;
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id SERIAL PRIMARY KEY,
+            action VARCHAR(100) NOT NULL,
+            actor_id INTEGER,
+            actor_email VARCHAR(255),
+            target_user_id INTEGER,
+            target_email VARCHAR(255),
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cur.execute("""
+        ALTER TABLE audit_logs
+        ADD COLUMN IF NOT EXISTS actor_id INTEGER;
+    """)
+
+    cur.execute("""
+        ALTER TABLE audit_logs
+        ADD COLUMN IF NOT EXISTS actor_email VARCHAR(255);
+    """)
+
+    cur.execute("""
+        ALTER TABLE audit_logs
+        ADD COLUMN IF NOT EXISTS target_user_id INTEGER;
+    """)
+
+    cur.execute("""
+        ALTER TABLE audit_logs
+        ADD COLUMN IF NOT EXISTS target_email VARCHAR(255);
+    """)
+
+    cur.execute("""
+        ALTER TABLE audit_logs
+        ADD COLUMN IF NOT EXISTS details TEXT;
+    """)
+
+    cur.execute("""
+        ALTER TABLE audit_logs
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    """)
+
     conn.commit()
     cur.close()
     conn.close()

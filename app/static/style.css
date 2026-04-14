@@ -355,3 +355,16 @@ li form {
     font-size: 16px;
     font-weight: 600;
 }
+.audit-log-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.audit-log-item {
+    background: #fafafa;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+}

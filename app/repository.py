@@ -275,3 +275,91 @@ def get_dashboard_stats():
         "total_regular_users": total_regular_users,
         "latest_user": latest_user,
     }
+
+
+def add_audit_log(
+    action,
+    actor_id=None,
+    actor_email=None,
+    target_user_id=None,
+    target_email=None,
+    details=None,
+):
+    ensure_db_ready()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        INSERT INTO audit_logs (
+            action,
+            actor_id,
+            actor_email,
+            target_user_id,
+            target_email,
+            details
+        )
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING id, action, actor_id, actor_email, target_user_id, target_email, details, created_at;
+        """,
+        (
+            action,
+            actor_id,
+            actor_email,
+            target_user_id,
+            target_email,
+            details,
+        ),
+    )
+    row = cur.fetchone()
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {
+        "id": row[0],
+        "action": row[1],
+        "actor_id": row[2],
+        "actor_email": row[3],
+        "target_user_id": row[4],
+        "target_email": row[5],
+        "details": row[6],
+        "created_at": row[7],
+    }
+
+
+def get_recent_audit_logs(limit: int = 10):
+    ensure_db_ready()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT id, action, actor_id, actor_email, target_user_id, target_email, details, created_at
+        FROM audit_logs
+        ORDER BY id DESC
+        LIMIT %s;
+        """,
+        (limit,),
+    )
+    rows = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return [
+        {
+            "id": row[0],
+            "action": row[1],
+            "actor_id": row[2],
+            "actor_email": row[3],
+            "target_user_id": row[4],
+            "target_email": row[5],
+            "details": row[6],
+            "created_at": row[7],
+        }
+        for row in rows
+    ]

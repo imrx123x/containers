@@ -12,9 +12,11 @@ from flask import (
 from app.db import check_db_health
 from app.logging import log
 from app.repository import (
+    add_audit_log,
     add_user_to_db,
     delete_user_from_db,
     get_dashboard_stats,
+    get_recent_audit_logs,
     get_user_by_id,
     get_users_paginated,
     search_users_paginated,
@@ -109,6 +111,7 @@ def home():
             page=1,
             total_pages=1,
             stats=None,
+            recent_logs=[],
         )
 
     query = request.args.get("q", "").strip()
@@ -132,6 +135,7 @@ def home():
 
         total_pages = max(1, (total + limit - 1) // limit)
         stats = get_dashboard_stats()
+        recent_logs = get_recent_audit_logs(limit=10)
 
         return render_template(
             "index.html",
@@ -142,6 +146,7 @@ def home():
             page=page,
             total_pages=total_pages,
             stats=stats,
+            recent_logs=recent_logs,
         )
 
     except Exception:
@@ -157,6 +162,7 @@ def home():
             page=1,
             total_pages=1,
             stats=None,
+            recent_logs=[],
         )
 
 
@@ -180,6 +186,15 @@ def login_page():
 
         session["access_token"] = result["access_token"]
         session["user_name"] = user["name"]
+
+        add_audit_log(
+            action="login",
+            actor_id=user["id"],
+            actor_email=user["email"],
+            target_user_id=user["id"],
+            target_email=user["email"],
+            details="User logged in via web",
+        )
 
         flash("Zalogowano pomyślnie", "success")
         log("info", "User logged in via web", user_id=user["id"], email=user["email"])
@@ -214,6 +229,15 @@ def register_page():
 
         session["access_token"] = result["access_token"]
         session["user_name"] = user["name"]
+
+        add_audit_log(
+            action="register",
+            actor_id=user["id"],
+            actor_email=user["email"],
+            target_user_id=user["id"],
+            target_email=user["email"],
+            details="User registered via web",
+        )
 
         flash("Konto zostało utworzone", "success")
         log("info", "User registered via web", user_id=user["id"], email=user["email"])
@@ -263,6 +287,15 @@ def update_profile():
 
         session["user_name"] = updated_user["name"]
 
+        add_audit_log(
+            action="update_profile",
+            actor_id=updated_user["id"],
+            actor_email=updated_user["email"],
+            target_user_id=updated_user["id"],
+            target_email=updated_user["email"],
+            details="User updated own profile",
+        )
+
         flash("Profil został zaktualizowany", "success")
         log(
             "info",
@@ -297,6 +330,15 @@ def change_password_web():
             user_id=user["id"],
             current_password=current_password,
             new_password=new_password,
+        )
+
+        add_audit_log(
+            action="change_password",
+            actor_id=user["id"],
+            actor_email=user.get("email"),
+            target_user_id=user["id"],
+            target_email=user.get("email"),
+            details="User changed own password",
         )
 
         flash(result["message"], "success")
@@ -344,6 +386,15 @@ def add_user():
 
     try:
         user = add_user_to_db(name, email)
+
+        add_audit_log(
+            action="create_user",
+            actor_id=current_user["id"],
+            actor_email=current_user.get("email"),
+            target_user_id=user["id"],
+            target_email=user.get("email"),
+            details=f"Admin created user: {user['name']}",
+        )
 
         log("info", "User added successfully", user=user)
         flash("User added successfully", "success")
@@ -396,6 +447,15 @@ def edit_user(user_id):
             log("warning", "User not found for update")
             flash("User not found", "error")
         else:
+            add_audit_log(
+                action="update_user",
+                actor_id=current_user["id"],
+                actor_email=current_user.get("email"),
+                target_user_id=updated_user["id"],
+                target_email=updated_user.get("email"),
+                details=f"Admin updated user: {updated_user['name']}",
+            )
+
             log("info", "User updated successfully", user=updated_user)
             flash("User updated successfully", "success")
 
@@ -430,6 +490,15 @@ def delete_user(user_id):
                 deleted_user["id"]
                 if isinstance(deleted_user, dict)
                 else deleted_user[0]
+            )
+
+            add_audit_log(
+                action="delete_user",
+                actor_id=current_user["id"],
+                actor_email=current_user.get("email"),
+                target_user_id=deleted_user_id,
+                target_email=None,
+                details=f"Admin deleted user with id={deleted_user_id}",
             )
 
             log(
