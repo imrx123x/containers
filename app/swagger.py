@@ -9,7 +9,7 @@ swagger_template = {
         "version": "1.0.0",
     },
     "basePath": "/",
-    "schemes": ["http", "https"],
+    "schemes": ["https"],
     "securityDefinitions": {
         "BearerAuth": {
             "type": "apiKey",
