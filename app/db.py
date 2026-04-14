@@ -47,7 +47,8 @@ def init_db():
             password_hash TEXT,
             role VARCHAR(20) NOT NULL DEFAULT 'user',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP NULL
         );
     """)
 
@@ -77,6 +78,11 @@ def init_db():
     """)
 
     cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL;
+    """)
+
+    cur.execute("""
         UPDATE users
         SET role = 'user'
         WHERE role IS NULL;
@@ -85,7 +91,7 @@ def init_db():
     cur.execute("""
         CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx
         ON users (LOWER(email))
-        WHERE email IS NOT NULL;
+        WHERE email IS NOT NULL AND deleted_at IS NULL;
     """)
 
     cur.execute("""

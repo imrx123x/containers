@@ -77,7 +77,7 @@
 
         <div class="card">
             <h2>Panel administratora</h2>
-            <p>Zarządzaj użytkownikami i monitoruj aktywność systemu.</p>
+            <p>Zarządzaj użytkownikami, koszem i monitoruj aktywność systemu.</p>
         </div>
 
         {% if stats %}
@@ -130,7 +130,7 @@
         </div>
 
         <div class="card">
-            <h2>Użytkownicy</h2>
+            <h2>Aktywni użytkownicy</h2>
 
             {% if users %}
                 <ul>
@@ -157,25 +157,79 @@
                             <button type="submit" class="btn btn-secondary">Zapisz</button>
                         </form>
 
-                        <form action="/delete-user/{{ user.id }}" method="post" onsubmit="return confirm('Na pewno usunąć?');">
-                            <button type="submit" class="btn btn-danger">Usuń</button>
+                        <form action="/delete-user/{{ user.id }}" method="post" onsubmit="return confirm('Przenieść użytkownika do kosza?');">
+                            <button type="submit" class="btn btn-danger">Do kosza</button>
                         </form>
                     </li>
                     {% endfor %}
                 </ul>
             {% else %}
-                <p>Brak użytkowników</p>
+                <p>Brak aktywnych użytkowników</p>
             {% endif %}
 
             <div class="pagination">
                 {% if page > 1 %}
-                    <a href="?q={{ query }}&page={{ page - 1 }}">⬅ Prev</a>
+                    <a href="?q={{ query }}&page={{ page - 1 }}&deleted_page={{ deleted_page }}">⬅ Prev</a>
                 {% endif %}
 
                 <span>Page {{ page }} / {{ total_pages }}</span>
 
                 {% if page < total_pages %}
-                    <a href="?q={{ query }}&page={{ page + 1 }}">Next ➡</a>
+                    <a href="?q={{ query }}&page={{ page + 1 }}&deleted_page={{ deleted_page }}">Next ➡</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Kosz</h2>
+
+            {% if deleted_users %}
+                <ul>
+                    {% for user in deleted_users %}
+                    <li>
+                        <div class="user-summary">
+                            <strong>#{{ user.id }}</strong> {{ user.name }}
+
+                            {% if user.email %}
+                                <br>
+                                <small>{{ user.email }}</small>
+                            {% endif %}
+
+                            {% if user.role == "admin" %}
+                                <br><span class="role-badge admin">Admin</span>
+                            {% else %}
+                                <br><span class="role-badge user">User</span>
+                            {% endif %}
+
+                            {% if user.deleted_at %}
+                                <br>
+                                <small>Usunięto: {{ user.deleted_at }}</small>
+                            {% endif %}
+                        </div>
+
+                        <form action="/restore-user/{{ user.id }}" method="post">
+                            <button type="submit" class="btn btn-primary">Przywróć</button>
+                        </form>
+
+                        <form action="/hard-delete-user/{{ user.id }}" method="post" onsubmit="return confirm('Usunąć użytkownika na zawsze?');">
+                            <button type="submit" class="btn btn-danger">Usuń na zawsze</button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Kosz jest pusty</p>
+            {% endif %}
+
+            <div class="pagination">
+                {% if deleted_page > 1 %}
+                    <a href="?q={{ query }}&page={{ page }}&deleted_page={{ deleted_page - 1 }}">⬅ Prev</a>
+                {% endif %}
+
+                <span>Trash page {{ deleted_page }} / {{ deleted_total_pages }}</span>
+
+                {% if deleted_page < deleted_total_pages %}
+                    <a href="?q={{ query }}&page={{ page }}&deleted_page={{ deleted_page + 1 }}">Next ➡</a>
                 {% endif %}
             </div>
         </div>
@@ -215,8 +269,8 @@
 
     {% endif %}
 
-    <a href="/apidocs/" target="_blank" class="swagger-btn">
-        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swagger/swagger-original.svg">
+    <a href="/apidocs/" target="_blank" rel="noopener noreferrer" class="swagger-btn">
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swagger/swagger-original.svg" alt="Swagger">
         API Docs
     </a>
 

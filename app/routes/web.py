@@ -14,12 +14,15 @@ from app.logging import log
 from app.repository import (
     add_audit_log,
     add_user_to_db,
-    delete_user_from_db,
     get_dashboard_stats,
+    get_deleted_users_paginated,
     get_recent_audit_logs,
     get_user_by_id,
     get_users_paginated,
+    hard_delete_user_from_db,
+    restore_user_in_db,
     search_users_paginated,
+    soft_delete_user_from_db,
     update_user_in_db,
 )
 from app.services.auth_service import (
@@ -107,15 +110,19 @@ def home():
             current_user=user,
             is_admin=False,
             users=[],
+            deleted_users=[],
             query="",
             page=1,
             total_pages=1,
+            deleted_page=1,
+            deleted_total_pages=1,
             stats=None,
             recent_logs=[],
         )
 
     query = request.args.get("q", "").strip()
     page = int(request.args.get("page", 1))
+    deleted_page = int(request.args.get("deleted_page", 1))
     limit = 10
 
     try:
@@ -124,16 +131,10 @@ def home():
         else:
             users, total = get_users_paginated(page, limit)
 
-        users = [
-            user_item if isinstance(user_item, dict) else {
-                "id": user_item[0],
-                "name": user_item[1],
-                "email": user_item[2],
-            }
-            for user_item in users
-        ]
+        deleted_users, deleted_total = get_deleted_users_paginated(deleted_page, limit)
 
         total_pages = max(1, (total + limit - 1) // limit)
+        deleted_total_pages = max(1, (deleted_total + limit - 1) // limit)
         stats = get_dashboard_stats()
         recent_logs = get_recent_audit_logs(limit=10)
 
@@ -142,9 +143,12 @@ def home():
             current_user=user,
             is_admin=True,
             users=users,
+            deleted_users=deleted_users,
             query=query,
             page=page,
             total_pages=total_pages,
+            deleted_page=deleted_page,
+            deleted_total_pages=deleted_total_pages,
             stats=stats,
             recent_logs=recent_logs,
         )
@@ -158,9 +162,12 @@ def home():
             current_user=user,
             is_admin=True,
             users=[],
+            deleted_users=[],
             query=query,
             page=1,
             total_pages=1,
+            deleted_page=1,
+            deleted_total_pages=1,
             stats=None,
             recent_logs=[],
         )
@@ -480,36 +487,88 @@ def delete_user(user_id):
     )
 
     try:
-        deleted_user = delete_user_from_db(user_id)
+        deleted_user = soft_delete_user_from_db(user_id)
 
         if not deleted_user:
             log("warning", "User not found for deletion")
             flash("User not found", "error")
         else:
-            deleted_user_id = (
-                deleted_user["id"]
-                if isinstance(deleted_user, dict)
-                else deleted_user[0]
-            )
-
             add_audit_log(
-                action="delete_user",
+                action="soft_delete_user",
                 actor_id=current_user["id"],
                 actor_email=current_user.get("email"),
-                target_user_id=deleted_user_id,
-                target_email=None,
-                details=f"Admin deleted user with id={deleted_user_id}",
+                target_user_id=deleted_user["id"],
+                target_email=deleted_user.get("email"),
+                details=f"Admin moved user to trash: {deleted_user['name']}",
             )
 
             log(
                 "info",
-                "User deleted successfully",
-                deleted_user_id=deleted_user_id,
+                "User soft deleted successfully",
+                deleted_user_id=deleted_user["id"],
             )
-            flash("User deleted successfully", "success")
+            flash("User moved to trash", "success")
 
     except Exception:
         log("exception", "Database error while deleting user")
         flash("Database error while deleting user", "error")
+
+    return redirect(url_for("web.home"))
+
+
+@web_bp.route("/restore-user/<int:user_id>", methods=["POST"])
+def restore_user(user_id):
+    current_user = admin_required_web()
+    if not current_user:
+        return redirect(url_for("web.home"))
+
+    try:
+        restored_user = restore_user_in_db(user_id)
+
+        if not restored_user:
+            flash("User not found in trash", "error")
+        else:
+            add_audit_log(
+                action="restore_user",
+                actor_id=current_user["id"],
+                actor_email=current_user.get("email"),
+                target_user_id=restored_user["id"],
+                target_email=restored_user.get("email"),
+                details=f"Admin restored user: {restored_user['name']}",
+            )
+            flash("User restored successfully", "success")
+
+    except Exception:
+        log("exception", "Database error while restoring user")
+        flash("Database error while restoring user", "error")
+
+    return redirect(url_for("web.home"))
+
+
+@web_bp.route("/hard-delete-user/<int:user_id>", methods=["POST"])
+def hard_delete_user(user_id):
+    current_user = admin_required_web()
+    if not current_user:
+        return redirect(url_for("web.home"))
+
+    try:
+        deleted_user = hard_delete_user_from_db(user_id)
+
+        if not deleted_user:
+            flash("User not found in trash", "error")
+        else:
+            add_audit_log(
+                action="hard_delete_user",
+                actor_id=current_user["id"],
+                actor_email=current_user.get("email"),
+                target_user_id=deleted_user["id"],
+                target_email=deleted_user.get("email"),
+                details=f"Admin permanently deleted user: {deleted_user['name']}",
+            )
+            flash("User permanently deleted", "success")
+
+    except Exception:
+        log("exception", "Database error while permanently deleting user")
+        flash("Database error while permanently deleting user", "error")
 
     return redirect(url_for("web.home"))

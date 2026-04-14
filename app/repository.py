@@ -9,6 +9,7 @@ def _row_to_dict(row):
         "role": row[3],
         "created_at": row[4],
         "updated_at": row[5],
+        "deleted_at": row[6],
     }
 
 
@@ -21,6 +22,7 @@ def _row_to_auth_dict(row):
         "role": row[4],
         "created_at": row[5],
         "updated_at": row[6],
+        "deleted_at": row[7],
     }
 
 
@@ -34,8 +36,9 @@ def get_users_paginated(page: int, limit: int):
 
     cur.execute(
         """
-        SELECT id, name, email, role, created_at, updated_at
+        SELECT id, name, email, role, created_at, updated_at, deleted_at
         FROM users
+        WHERE deleted_at IS NULL
         ORDER BY id
         LIMIT %s OFFSET %s;
         """,
@@ -43,7 +46,48 @@ def get_users_paginated(page: int, limit: int):
     )
     users = [_row_to_dict(row) for row in cur.fetchall()]
 
-    cur.execute("SELECT COUNT(*) FROM users;")
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM users
+        WHERE deleted_at IS NULL;
+        """
+    )
+    total = cur.fetchone()[0]
+
+    cur.close()
+    conn.close()
+
+    return users, total
+
+
+def get_deleted_users_paginated(page: int, limit: int):
+    ensure_db_ready()
+
+    offset = (page - 1) * limit
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT id, name, email, role, created_at, updated_at, deleted_at
+        FROM users
+        WHERE deleted_at IS NOT NULL
+        ORDER BY deleted_at DESC, id DESC
+        LIMIT %s OFFSET %s;
+        """,
+        (limit, offset),
+    )
+    users = [_row_to_dict(row) for row in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM users
+        WHERE deleted_at IS NOT NULL;
+        """
+    )
     total = cur.fetchone()[0]
 
     cur.close()
@@ -63,10 +107,13 @@ def search_users_paginated(query: str, page: int, limit: int):
 
     cur.execute(
         """
-        SELECT id, name, email, role, created_at, updated_at
+        SELECT id, name, email, role, created_at, updated_at, deleted_at
         FROM users
-        WHERE LOWER(name) LIKE %s
-           OR LOWER(COALESCE(email, '')) LIKE %s
+        WHERE deleted_at IS NULL
+          AND (
+                LOWER(name) LIKE %s
+                OR LOWER(COALESCE(email, '')) LIKE %s
+          )
         ORDER BY id
         LIMIT %s OFFSET %s;
         """,
@@ -78,8 +125,11 @@ def search_users_paginated(query: str, page: int, limit: int):
         """
         SELECT COUNT(*)
         FROM users
-        WHERE LOWER(name) LIKE %s
-           OR LOWER(COALESCE(email, '')) LIKE %s;
+        WHERE deleted_at IS NULL
+          AND (
+                LOWER(name) LIKE %s
+                OR LOWER(COALESCE(email, '')) LIKE %s
+          );
         """,
         (like_query, like_query),
     )
@@ -99,9 +149,10 @@ def get_user_by_id(user_id):
 
     cur.execute(
         """
-        SELECT id, name, email, role, created_at, updated_at
+        SELECT id, name, email, role, created_at, updated_at, deleted_at
         FROM users
-        WHERE id = %s;
+        WHERE id = %s
+          AND deleted_at IS NULL;
         """,
         (user_id,),
     )
@@ -122,9 +173,10 @@ def get_user_by_email(email, include_password=False):
     if include_password:
         cur.execute(
             """
-            SELECT id, name, email, password_hash, role, created_at, updated_at
+            SELECT id, name, email, password_hash, role, created_at, updated_at, deleted_at
             FROM users
-            WHERE LOWER(email) = LOWER(%s);
+            WHERE LOWER(email) = LOWER(%s)
+              AND deleted_at IS NULL;
             """,
             (email,),
         )
@@ -135,9 +187,10 @@ def get_user_by_email(email, include_password=False):
 
     cur.execute(
         """
-        SELECT id, name, email, role, created_at, updated_at
+        SELECT id, name, email, role, created_at, updated_at, deleted_at
         FROM users
-        WHERE LOWER(email) = LOWER(%s);
+        WHERE LOWER(email) = LOWER(%s)
+          AND deleted_at IS NULL;
         """,
         (email,),
     )
@@ -159,7 +212,7 @@ def add_user_to_db(name, email, password_hash=None, role="user"):
         """
         INSERT INTO users (name, email, password_hash, role)
         VALUES (%s, %s, %s, %s)
-        RETURNING id, name, email, role, created_at, updated_at;
+        RETURNING id, name, email, role, created_at, updated_at, deleted_at;
         """,
         (name, email, password_hash, role),
     )
@@ -185,7 +238,8 @@ def update_user_in_db(user_id, name, email):
             email = %s,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = %s
-        RETURNING id, name, email, role, created_at, updated_at;
+          AND deleted_at IS NULL
+        RETURNING id, name, email, role, created_at, updated_at, deleted_at;
         """,
         (name, email, user_id),
     )
@@ -210,7 +264,8 @@ def update_user_password_in_db(user_id, password_hash):
         SET password_hash = %s,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = %s
-        RETURNING id, name, email, role, created_at, updated_at;
+          AND deleted_at IS NULL
+        RETURNING id, name, email, role, created_at, updated_at, deleted_at;
         """,
         (password_hash, user_id),
     )
@@ -223,20 +278,80 @@ def update_user_password_in_db(user_id, password_hash):
     return _row_to_dict(row) if row else None
 
 
-def delete_user_from_db(user_id):
+def soft_delete_user_from_db(user_id):
     ensure_db_ready()
 
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("DELETE FROM users WHERE id = %s RETURNING id;", (user_id,))
-    deleted = cur.fetchone()
+    cur.execute(
+        """
+        UPDATE users
+        SET deleted_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = %s
+          AND deleted_at IS NULL
+        RETURNING id, name, email, role, created_at, updated_at, deleted_at;
+        """,
+        (user_id,),
+    )
+    row = cur.fetchone()
 
     conn.commit()
     cur.close()
     conn.close()
 
-    return deleted
+    return _row_to_dict(row) if row else None
+
+
+def restore_user_in_db(user_id):
+    ensure_db_ready()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        UPDATE users
+        SET deleted_at = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = %s
+          AND deleted_at IS NOT NULL
+        RETURNING id, name, email, role, created_at, updated_at, deleted_at;
+        """,
+        (user_id,),
+    )
+    row = cur.fetchone()
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return _row_to_dict(row) if row else None
+
+
+def hard_delete_user_from_db(user_id):
+    ensure_db_ready()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        DELETE FROM users
+        WHERE id = %s
+          AND deleted_at IS NOT NULL
+        RETURNING id, name, email, role, created_at, updated_at, deleted_at;
+        """,
+        (user_id,),
+    )
+    row = cur.fetchone()
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return _row_to_dict(row) if row else None
 
 
 def get_dashboard_stats():
@@ -245,19 +360,20 @@ def get_dashboard_stats():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT COUNT(*) FROM users;")
+    cur.execute("SELECT COUNT(*) FROM users WHERE deleted_at IS NULL;")
     total_users = cur.fetchone()[0]
 
-    cur.execute("SELECT COUNT(*) FROM users WHERE role = 'admin';")
+    cur.execute("SELECT COUNT(*) FROM users WHERE role = 'admin' AND deleted_at IS NULL;")
     total_admins = cur.fetchone()[0]
 
-    cur.execute("SELECT COUNT(*) FROM users WHERE role = 'user';")
+    cur.execute("SELECT COUNT(*) FROM users WHERE role = 'user' AND deleted_at IS NULL;")
     total_regular_users = cur.fetchone()[0]
 
     cur.execute(
         """
-        SELECT id, name, email, role, created_at, updated_at
+        SELECT id, name, email, role, created_at, updated_at, deleted_at
         FROM users
+        WHERE deleted_at IS NULL
         ORDER BY id DESC
         LIMIT 1;
         """
