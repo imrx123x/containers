@@ -65,6 +65,36 @@ def decode_access_token(token: str, max_age: int = 60 * 60 * 24):
         return None
 
 
+def generate_password_reset_token(user: dict) -> str:
+    serializer = _get_serializer()
+    return serializer.dumps(
+        {
+            "sub": user["id"],
+            "email": user.get("email"),
+            "purpose": "password-reset",
+        },
+        salt="password-reset-token",
+    )
+
+
+def decode_password_reset_token(token: str, max_age: int = 60 * 30):
+    serializer = _get_serializer()
+
+    try:
+        payload = serializer.loads(
+            token,
+            salt="password-reset-token",
+            max_age=max_age,
+        )
+    except (BadSignature, SignatureExpired):
+        return None
+
+    if payload.get("purpose") != "password-reset":
+        return None
+
+    return payload
+
+
 def extract_bearer_token(auth_header: str | None):
     if not auth_header:
         return None

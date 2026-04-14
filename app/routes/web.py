@@ -29,6 +29,8 @@ from app.services.auth_service import (
     change_password_service,
     login_user_service,
     register_user_service,
+    request_password_reset_service,
+    reset_password_with_token_service,
 )
 from app.services.user_service import update_current_user_service
 from app.utils import decode_access_token, normalize_email
@@ -212,6 +214,93 @@ def login_page():
         log("warning", "Web login failed", error=str(error))
         flash(getattr(error, "message", "Logowanie nie powiodło się"), "error")
         return render_template("login.html", current_user=None), 400
+
+
+@web_bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password_page():
+    if request.method == "GET":
+        return render_template(
+            "forgot_password.html",
+            current_user=get_session_user(),
+            reset_link=None,
+        )
+
+    email = request.form.get("email", "")
+
+    try:
+        result = request_password_reset_service(email)
+        user = result["user"]
+        reset_token = result["reset_token"]
+        reset_link = url_for("web.reset_password_page", token=reset_token, _external=True)
+
+        add_audit_log(
+            action="request_password_reset",
+            actor_id=user["id"],
+            actor_email=user["email"],
+            target_user_id=user["id"],
+            target_email=user["email"],
+            details="Password reset link generated",
+        )
+
+        flash("Wygenerowano link do resetu hasła", "success")
+        return render_template(
+            "forgot_password.html",
+            current_user=get_session_user(),
+            reset_link=reset_link,
+        )
+
+    except Exception as error:
+        log("warning", "Password reset request failed", error=str(error), email=email)
+        flash(getattr(error, "message", "Nie udało się wygenerować linku resetującego"), "error")
+        return render_template(
+            "forgot_password.html",
+            current_user=get_session_user(),
+            reset_link=None,
+        ), 400
+
+
+@web_bp.route("/reset-password", methods=["GET", "POST"])
+def reset_password_page():
+    token = request.args.get("token", "") if request.method == "GET" else request.form.get("token", "")
+
+    if request.method == "GET":
+        if not token:
+            flash("Brak tokenu resetującego", "error")
+        return render_template(
+            "reset_password.html",
+            current_user=get_session_user(),
+            token=token,
+        )
+
+    new_password = request.form.get("new_password", "")
+
+    try:
+        result = reset_password_with_token_service(
+            token=token,
+            new_password=new_password,
+        )
+        user = result["user"]
+
+        add_audit_log(
+            action="reset_password",
+            actor_id=user["id"],
+            actor_email=user["email"],
+            target_user_id=user["id"],
+            target_email=user["email"],
+            details="Password reset completed via token",
+        )
+
+        flash("Hasło zostało zresetowane. Możesz się zalogować.", "success")
+        return redirect(url_for("web.login_page"))
+
+    except Exception as error:
+        log("warning", "Password reset failed", error=str(error))
+        flash(getattr(error, "message", "Nie udało się zresetować hasła"), "error")
+        return render_template(
+            "reset_password.html",
+            current_user=get_session_user(),
+            token=token,
+        ), 400
 
 
 @web_bp.route("/register", methods=["GET", "POST"])
