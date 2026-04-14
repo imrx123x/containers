@@ -1,13 +1,43 @@
 <!doctype html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flask + PostgreSQL</title>
+    <title>Users App</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Flask + PostgreSQL</h1>
+    <div class="topbar">
+        <div>
+            <strong>Users App</strong>
+        </div>
+
+        <div class="topbar-actions">
+            {% if current_user %}
+                <span class="user-pill">
+                    Zalogowany jako
+                    <strong>{{ current_user.name }}</strong>
+
+                    {% if current_user.role == "admin" %}
+                        <span class="role-badge admin">Admin</span>
+                    {% else %}
+                        <span class="role-badge user">User</span>
+                    {% endif %}
+                </span>
+
+                <a class="btn btn-secondary" href="{{ url_for('web.profile') }}">Profil</a>
+
+                <form action="{{ url_for('web.logout') }}" method="post" class="inline-form">
+                    <button type="submit" class="btn btn-danger">Wyloguj</button>
+                </form>
+            {% else %}
+                <a class="btn btn-secondary" href="{{ url_for('web.login_page') }}">Logowanie</a>
+                <a class="btn btn-primary" href="{{ url_for('web.register_page') }}">Rejestracja</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <h1>Flask + PostgreSQL Users App</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -21,60 +51,102 @@
         {% endif %}
     {% endwith %}
 
-    <h2>Add user</h2>
-    <form action="/add-user" method="post">
-        <input type="text" name="name" placeholder="Enter name" required>
-        <input type="email" name="email" placeholder="Enter email">
-        <button type="submit">Add</button>
-    </form>
+    {% if not current_user %}
+        <div class="card">
+            <h2>Witaj 👋</h2>
+            <p>To aplikacja do zarządzania użytkownikami z logowaniem, rejestracją i rolami.</p>
+            <p>Zaloguj się albo utwórz konto, żeby przejść dalej.</p>
 
-    <h2>Users</h2>
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="{{ url_for('web.register_page') }}">Załóż konto</a>
+                <a class="btn btn-secondary" href="{{ url_for('web.login_page') }}">Zaloguj się</a>
+            </div>
+        </div>
+    {% elif not is_admin %}
+        <div class="card">
+            <h2>Panel użytkownika</h2>
+            <p>Jesteś zalogowany jako zwykły użytkownik.</p>
+            <p>Możesz przejść do swojego profilu i zmienić hasło.</p>
 
-    {% if users %}
-    <ul>
-        {% for user in users %}
-        <li>
-            <div>
-                <strong>{{ user.id }}</strong>: {{ user.name }}
-                {% if user.email %}
-                    <br>
-                    <small>{{ user.email }}</small>
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="{{ url_for('web.profile') }}">Przejdź do profilu</a>
+            </div>
+        </div>
+    {% else %}
+        <div class="card">
+            <h2>Panel administratora</h2>
+            <p>Tutaj możesz dodawać, edytować i usuwać użytkowników.</p>
+        </div>
+
+        <div class="card">
+            <h2>Add user</h2>
+            <form action="/add-user" method="post" class="stack-form">
+                <input type="text" name="name" placeholder="Enter name" required>
+                <input type="email" name="email" placeholder="Enter email">
+                <button type="submit" class="btn btn-primary">Add</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Search</h2>
+            <form method="get" action="/" class="stack-form">
+                <input type="text" name="q" value="{{ query or '' }}" placeholder="Search by name or email">
+                <button type="submit" class="btn btn-secondary">Search</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Users</h2>
+
+            {% if users %}
+                <ul>
+                    {% for user in users %}
+                    <li>
+                        <div class="user-summary">
+                            <strong>#{{ user.id }}</strong> {{ user.name }}
+                            {% if user.email %}
+                                <br>
+                                <small>{{ user.email }}</small>
+                            {% endif %}
+                            {% if user.role %}
+                                <br>
+                                {% if user.role == "admin" %}
+                                    <span class="role-badge admin">Admin</span>
+                                {% else %}
+                                    <span class="role-badge user">User</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+
+                        <form action="/edit-user/{{ user.id }}" method="post">
+                            <input type="text" name="name" value="{{ user.name }}" required>
+                            <input type="email" name="email" value="{{ user.email or '' }}">
+                            <button type="submit" class="btn btn-secondary">Save</button>
+                        </form>
+
+                        <form action="/delete-user/{{ user.id }}" method="post" onsubmit="return confirm('Na pewno usunąć użytkownika?');">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No users in database</p>
+            {% endif %}
+
+            <div class="pagination">
+                {% if page > 1 %}
+                    <a href="?q={{ query }}&page={{ page - 1 }}">⬅ Prev</a>
+                {% endif %}
+
+                <span>Page {{ page }} / {{ total_pages }}</span>
+
+                {% if page < total_pages %}
+                    <a href="?q={{ query }}&page={{ page + 1 }}">Next ➡</a>
                 {% endif %}
             </div>
-
-            <form action="/edit-user/{{ user.id }}" method="post">
-                <input type="text" name="name" value="{{ user.name }}" required>
-                <input type="email" name="email" value="{{ user.email or '' }}">
-                <button type="submit">Save</button>
-            </form>
-
-            <form action="/delete-user/{{ user.id }}" method="post">
-                <button type="submit">Delete</button>
-            </form>
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-        <p>No users in database</p>
+        </div>
     {% endif %}
-
-    <h2>Search</h2>
-    <form method="get" action="/">
-        <input type="text" name="q" value="{{ query or '' }}" placeholder="Search">
-        <button type="submit">Search</button>
-    </form>
-
-    <div style="margin-top: 20px;">
-        {% if page > 1 %}
-            <a href="?q={{ query }}&page={{ page - 1 }}">⬅ Prev</a>
-        {% endif %}
-
-        <span> Page {{ page }} / {{ total_pages }} </span>
-
-        {% if page < total_pages %}
-            <a href="?q={{ query }}&page={{ page + 1 }}">Next ➡</a>
-        {% endif %}
-    </div>
 
     <a href="/apidocs/" target="_blank" rel="noopener noreferrer" class="swagger-btn">
         <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swagger/swagger-original.svg" alt="Swagger">

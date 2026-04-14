@@ -1,8 +1,8 @@
 body {
     font-family: Arial, sans-serif;
-    max-width: 900px;
+    max-width: 960px;
     margin: 40px auto;
-    padding: 0 20px;
+    padding: 0 20px 60px;
     background: #f7f7f7;
     color: #222;
 }
@@ -12,8 +12,100 @@ h1 {
 }
 
 h2 {
-    margin-top: 32px;
+    margin-top: 0;
     margin-bottom: 12px;
+}
+
+p {
+    line-height: 1.5;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding: 16px 18px;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    flex-wrap: wrap;
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.user-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f3f4f6;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+.card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.hero-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.auth-page {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: white;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.auth-links {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.auth-links a {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+.auth-links a:hover {
+    text-decoration: underline;
+}
+
+.stack-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.inline-form {
+    display: inline;
+    margin: 0;
 }
 
 form {
@@ -21,42 +113,78 @@ form {
 }
 
 input[type="text"],
-input[type="email"] {
-    padding: 10px;
-    width: 260px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
+input[type="email"],
+input[type="password"] {
+    padding: 11px 12px;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #fff;
 }
 
-button {
+button,
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 10px 14px;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+button:hover,
+.btn:hover {
+    transform: translateY(-1px);
+    opacity: 0.96;
+}
+
+.btn-primary {
+    background: #2563eb;
+    color: white;
+}
+
+.btn-secondary {
+    background: #111827;
+    color: white;
+}
+
+.btn-danger {
+    background: #dc2626;
+    color: white;
 }
 
 ul {
     list-style: none;
     padding: 0;
+    margin: 0;
 }
 
 li {
-    background: white;
-    margin-bottom: 10px;
-    padding: 12px 14px;
-    border-radius: 10px;
+    background: #fafafa;
+    margin-bottom: 12px;
+    padding: 14px;
+    border-radius: 12px;
     display: flex;
-    gap: 12px;
+    gap: 14px;
     align-items: center;
     flex-wrap: wrap;
+    border: 1px solid #ececec;
 }
 
 li form {
     margin: 0;
+    flex: 1 1 240px;
 }
 
-li div {
-    min-width: 120px;
+.user-summary {
+    min-width: 180px;
+    flex: 1 1 220px;
 }
 
 .messages {
@@ -80,6 +208,40 @@ li div {
     background: #fee2e2;
     color: #991b1b;
     border: 1px solid #fecaca;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+.role-badge.admin {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.role-badge.user {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.pagination {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 18px;
+    flex-wrap: wrap;
+}
+
+.pagination a {
+    text-decoration: none;
+    color: #2563eb;
+    font-weight: 600;
 }
 
 .swagger-btn {
@@ -134,5 +296,33 @@ li div {
     100% {
         transform: scale(1.45);
         opacity: 0;
+    }
+}
+
+@media (max-width: 640px) {
+    body {
+        margin: 20px auto;
+        padding: 0 14px 80px;
+    }
+
+    .topbar {
+        align-items: flex-start;
+    }
+
+    .topbar-actions {
+        width: 100%;
+    }
+
+    .auth-card {
+        padding: 22px;
+    }
+
+    li {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    li form {
+        flex: 1 1 auto;
     }
 }

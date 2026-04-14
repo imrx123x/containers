@@ -1,8 +1,9 @@
 import os
 import time
 import uuid
+from datetime import timedelta
 
-from flask import Flask, g, jsonify, request
+from flask import Flask, g, jsonify, request, session
 
 from app.exceptions import AppError
 from app.logging import log
@@ -25,10 +26,17 @@ def create_app():
     app.config["SECRET_KEY"] = secret_key or "dev-secret-key"
     app.config["JSON_SORT_KEYS"] = False
 
+    app.config["SESSION_PERMANENT"] = True
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = app_env == "production"
+
     @app.before_request
     def before_request():
         g.request_id = str(uuid.uuid4())
         g.started_at = time.perf_counter()
+        session.permanent = True
 
     @app.after_request
     def after_request(response):

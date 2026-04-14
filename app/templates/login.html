@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logowanie</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <h1>Logowanie</h1>
+            <p>Zaloguj się do aplikacji.</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="messages">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('web.login_page') }}" method="post" class="stack-form">
+                <input
+                    type="email"
+                    name="email"
+                    placeholder="Adres email"
+                    required
+                >
+                <input
+                    type="password"
+                    name="password"
+                    placeholder="Hasło"
+                    required
+                >
+                <button type="submit" class="btn btn-primary">Zaloguj się</button>
+            </form>
+
+            <div class="auth-links">
+                <a href="{{ url_for('web.register_page') }}">Nie masz konta? Zarejestruj się</a>
+                <a href="{{ url_for('web.home') }}">← Wróć na stronę główną</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

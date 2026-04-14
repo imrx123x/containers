@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rejestracja</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <h1>Rejestracja</h1>
+            <p>Utwórz nowe konto.</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="messages">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('web.register_page') }}" method="post" class="stack-form">
+                <input
+                    type="text"
+                    name="name"
+                    placeholder="Imię"
+                    required
+                >
+                <input
+                    type="email"
+                    name="email"
+                    placeholder="Adres email"
+                    required
+                >
+                <input
+                    type="password"
+                    name="password"
+                    placeholder="Hasło (min. 8 znaków)"
+                    required
+                >
+                <button type="submit" class="btn btn-primary">Zarejestruj się</button>
+            </form>
+
+            <div class="auth-links">
+                <a href="{{ url_for('web.login_page') }}">Masz konto? Zaloguj się</a>
+                <a href="{{ url_for('web.home') }}">← Wróć na stronę główną</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
