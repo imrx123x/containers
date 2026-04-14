@@ -198,6 +198,31 @@ def update_user_in_db(user_id, name, email):
     return _row_to_dict(row) if row else None
 
 
+def update_user_password_in_db(user_id, password_hash):
+    ensure_db_ready()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        UPDATE users
+        SET password_hash = %s,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = %s
+        RETURNING id, name, email, role, created_at, updated_at;
+        """,
+        (password_hash, user_id),
+    )
+    row = cur.fetchone()
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return _row_to_dict(row) if row else None
+
+
 def delete_user_from_db(user_id):
     ensure_db_ready()
 

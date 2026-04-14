@@ -2,7 +2,11 @@ from flask import Blueprint, g, jsonify, request
 
 from app.auth import auth_required
 from app.logging import log
-from app.services.auth_service import login_user_service, register_user_service
+from app.services.auth_service import (
+    change_password_service,
+    login_user_service,
+    register_user_service,
+)
 
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
@@ -69,3 +73,24 @@ def login():
 def me():
     log("info", "Fetched current user", user_id=g.current_user["id"])
     return jsonify(_serialize_user(g.current_user)), 200
+
+
+@auth_bp.route("/change-password", methods=["POST"])
+@auth_required
+def change_password():
+    data = request.get_json(silent=True) or {}
+
+    result = change_password_service(
+        user_id=g.current_user["id"],
+        current_password=data.get("current_password", ""),
+        new_password=data.get("new_password", ""),
+    )
+
+    log("info", "Password changed", user_id=g.current_user["id"])
+
+    return jsonify(
+        {
+            "message": result["message"],
+            "user": _serialize_user(result["user"]),
+        }
+    ), 200

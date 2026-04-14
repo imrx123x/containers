@@ -1,5 +1,5 @@
-from app.exceptions import ConflictError, UnauthorizedError, ValidationError
-from app.repository import get_user_by_email
+from app.exceptions import ConflictError, NotFoundError, UnauthorizedError, ValidationError
+from app.repository import get_user_by_email, get_user_by_id, update_user_password_in_db
 from app.services.user_service import create_user_service, validate_user_name
 from app.utils import (
     generate_access_token,
@@ -64,4 +64,48 @@ def login_user_service(raw_email, password):
         "message": "Login successful",
         "access_token": token,
         "user": user,
+    }
+
+
+def change_password_service(user_id: int, current_password: str, new_password: str):
+    if not current_password:
+        raise ValidationError("Current password is required", code="current_password_required")
+
+    if not validate_password(new_password):
+        raise ValidationError(
+            "New password must be at least 8 characters",
+            code="weak_new_password",
+        )
+
+    user = get_user_by_id(user_id)
+    if not user:
+        raise NotFoundError("User not found", code="user_not_found")
+
+    auth_user = get_user_by_email(user["email"], include_password=True)
+    if not auth_user:
+        raise NotFoundError("User not found", code="user_not_found")
+
+    if not verify_password(auth_user.get("password_hash"), current_password):
+        raise UnauthorizedError(
+            "Current password is incorrect",
+            code="invalid_current_password",
+        )
+
+    if verify_password(auth_user.get("password_hash"), new_password):
+        raise ValidationError(
+            "New password must be different from current password",
+            code="same_password",
+        )
+
+    updated_user = update_user_password_in_db(
+        user_id=user_id,
+        password_hash=hash_password(new_password),
+    )
+
+    if not updated_user:
+        raise NotFoundError("User not found", code="user_not_found")
+
+    return {
+        "message": "Password changed successfully",
+        "user": updated_user,
     }
