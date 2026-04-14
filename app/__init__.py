@@ -1,4 +1,5 @@
 import os
+import time
 import uuid
 
 from flask import Flask, g, jsonify, request
@@ -24,16 +25,25 @@ def create_app():
     app.config["JSON_SORT_KEYS"] = False
 
     @app.before_request
-    def assign_request_id():
+    def before_request():
         g.request_id = str(uuid.uuid4())
+        g.started_at = time.perf_counter()
 
     @app.after_request
-    def log_response(response):
+    def after_request(response):
         try:
+            duration_ms = None
+
+            if hasattr(g, "started_at"):
+                duration_ms = round((time.perf_counter() - g.started_at) * 1000, 2)
+
+            response.headers["X-Request-ID"] = g.request_id
+
             log(
                 "info",
                 "Request completed",
                 status=response.status_code,
+                duration_ms=duration_ms,
                 method=request.method,
                 path=request.path,
             )
