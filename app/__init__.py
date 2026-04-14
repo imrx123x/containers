@@ -3,6 +3,7 @@ import uuid
 
 from flask import Flask, g, jsonify, request
 
+from app.exceptions import AppError
 from app.logging import log
 from app.routes.api import api_bp
 from app.routes.auth import auth_bp
@@ -51,6 +52,17 @@ def create_app():
 
 
 def register_error_handlers(app: Flask):
+    @app.errorhandler(AppError)
+    def handle_app_error(error: AppError):
+        log(
+            "warning",
+            "Application error",
+            error_code=error.code,
+            error_message=error.message,
+            status=error.status_code,
+        )
+        return jsonify({"error": error.message, "code": error.code}), error.status_code
+
     @app.errorhandler(404)
     def not_found(_error):
         log("warning", "Route not found")
