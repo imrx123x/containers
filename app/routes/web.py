@@ -24,6 +24,7 @@ from app.services.auth_service import (
     login_user_service,
     register_user_service,
 )
+from app.services.user_service import update_current_user_service
 from app.utils import decode_access_token, normalize_email
 
 
@@ -237,6 +238,44 @@ def profile():
     fresh_user = get_user_by_id(user["id"]) or user
 
     return render_template("profile.html", current_user=fresh_user)
+
+
+@web_bp.route("/profile", methods=["POST"])
+def update_profile():
+    user = login_required_web()
+    if not user:
+        return redirect(url_for("web.login_page"))
+
+    name = request.form.get("name")
+    email = request.form.get("email")
+
+    try:
+        updated_user = update_current_user_service(
+            user_id=user["id"],
+            name=name,
+            raw_email=email,
+        )
+
+        session["user_name"] = updated_user["name"]
+
+        flash("Profil został zaktualizowany", "success")
+        log(
+            "info",
+            "Profile updated via web",
+            user_id=updated_user["id"],
+            email=updated_user["email"],
+        )
+
+    except Exception as error:
+        log(
+            "warning",
+            "Web profile update failed",
+            error=str(error),
+            user_id=user["id"],
+        )
+        flash(getattr(error, "message", "Nie udało się zaktualizować profilu"), "error")
+
+    return redirect(url_for("web.profile"))
 
 
 @web_bp.route("/change-password", methods=["POST"])

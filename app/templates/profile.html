@@ -35,29 +35,50 @@
         {% endif %}
     {% endwith %}
 
-<div class="card">
-    <h2>Dane użytkownika</h2>
+    <div class="card">
+        <h2>Dane użytkownika</h2>
 
-    <p>
-        <strong>Imię:</strong>
-        <span style="font-size: 18px;">{{ current_user.name }}</span>
-    </p>
+        <p>
+            <strong>Imię:</strong>
+            <span style="font-size: 18px;">{{ current_user.name }}</span>
+        </p>
 
-    <p><strong>Email:</strong> {{ current_user.email }}</p>
+        <p><strong>Email:</strong> {{ current_user.email }}</p>
 
-    <p>
-        <strong>Rola:</strong>
-        {% if current_user.role == "admin" %}
-            <span class="role-badge admin">Admin</span>
-        {% else %}
-            <span class="role-badge user">User</span>
-        {% endif %}
-    </p>
+        <p>
+            <strong>Rola:</strong>
+            {% if current_user.role == "admin" %}
+                <span class="role-badge admin">Admin</span>
+            {% else %}
+                <span class="role-badge user">User</span>
+            {% endif %}
+        </p>
 
-    <p style="margin-top: 10px; font-size: 13px; color: #666;">
-        ID użytkownika: {{ current_user.id }}
-    </p>
-</div>
+        <p style="margin-top: 10px; font-size: 13px; color: #666;">
+            ID użytkownika: {{ current_user.id }}
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>Edytuj profil</h2>
+
+        <form action="{{ url_for('web.update_profile') }}" method="post" class="stack-form">
+            <input
+                type="text"
+                name="name"
+                value="{{ current_user.name }}"
+                placeholder="Imię"
+                required
+            >
+            <input
+                type="email"
+                name="email"
+                value="{{ current_user.email or '' }}"
+                placeholder="Adres email"
+            >
+            <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+        </form>
+    </div>
 
     <div class="card">
         <h2>Zmień hasło</h2>
