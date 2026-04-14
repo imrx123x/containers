@@ -479,3 +479,5 @@ def get_recent_audit_logs(limit: int = 10):
         }
         for row in rows
     ]
+def delete_user_from_db(user_id):
+    return soft_delete_user_from_db(user_id)
