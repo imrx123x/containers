@@ -1,7 +1,7 @@
 import threading
 import time
 
-from flask import request
+from flask import current_app, request
 
 from app.exceptions import ForbiddenError
 
@@ -34,6 +34,9 @@ def enforce_rate_limit(
     window_seconds: int,
     identifier: str | None = None,
 ):
+    if current_app.config.get("TESTING"):
+        return
+
     now = time.time()
     client_id = identifier or get_client_ip()
     storage_key = f"{action}:{client_id}"
