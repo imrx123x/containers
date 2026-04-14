@@ -1,74 +1,71 @@
-from functools import wraps
+from flask import Blueprint, g, jsonify, request
 
-from flask import current_app, g, jsonify, request
-
-from app.exceptions import ForbiddenError, UnauthorizedError
-from app.repository import get_user_by_id
-from app.utils import decode_access_token, extract_bearer_token
+from app.auth import auth_required
+from app.logging import log
+from app.services.auth_service import login_user_service, register_user_service
 
 
-def _set_test_user(role="admin"):
-    g.current_user = {
-        "id": 0,
-        "name": "Test User",
-        "email": "test@example.com",
-        "role": role,
+auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
+
+
+def _serialize_user(user):
+    return {
+        "id": user["id"],
+        "name": user["name"],
+        "email": user["email"],
+        "role": user["role"],
+        "created_at": user.get("created_at"),
+        "updated_at": user.get("updated_at"),
     }
 
 
-def load_current_user():
-    if current_app.config.get("TESTING"):
-        _set_test_user(role="admin")
-        return g.current_user
+@auth_bp.route("/register", methods=["POST"])
+def register():
+    data = request.get_json(silent=True) or {}
 
-    token = extract_bearer_token(request.headers.get("Authorization"))
-    if not token:
-        raise UnauthorizedError("Missing bearer token", code="missing_bearer_token")
+    result = register_user_service(
+        name=data.get("name", ""),
+        raw_email=data.get("email"),
+        password=data.get("password", ""),
+    )
 
-    payload = decode_access_token(token)
-    if not payload:
-        raise UnauthorizedError(
-            "Invalid or expired token",
-            code="invalid_or_expired_token",
-        )
+    user = result["user"]
 
-    user_id = payload.get("sub")
-    user = get_user_by_id(user_id)
+    log("info", "User registered", user_id=user["id"], email=user["email"])
 
-    if not user:
-        raise UnauthorizedError("User not found", code="user_not_found")
-
-    g.current_user = user
-    return user
+    return jsonify(
+        {
+            "message": result["message"],
+            "access_token": result["access_token"],
+            "user": _serialize_user(user),
+        }
+    ), 201
 
 
-def auth_required(fn):
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        load_current_user()
-        return fn(*args, **kwargs)
+@auth_bp.route("/login", methods=["POST"])
+def login():
+    data = request.get_json(silent=True) or {}
 
-    return wrapper
+    result = login_user_service(
+        raw_email=data.get("email"),
+        password=data.get("password", ""),
+    )
 
+    user = result["user"]
 
-def role_required(required_role):
-    def decorator(fn):
-        @wraps(fn)
-        def wrapper(*args, **kwargs):
-            if current_app.config.get("TESTING"):
-                _set_test_user(role=required_role)
-                return fn(*args, **kwargs)
+    log("info", "User logged in", user_id=user["id"], email=user["email"])
 
-            user = load_current_user()
-
-            if user.get("role") != required_role:
-                raise ForbiddenError("Forbidden", code="forbidden")
-
-            return fn(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
+    return jsonify(
+        {
+            "message": result["message"],
+            "access_token": result["access_token"],
+            "user": _serialize_user(user),
+        }
+    ), 200
 
 
-admin_required = role_required("admin")
+@auth_bp.route("/me", methods=["GET"])
+@auth_required
+def me():
+    log("info", "Fetched current user", user_id=g.current_user["id"])
+    return jsonify(_serialize_user(g.current_user)), 200

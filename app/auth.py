@@ -1,7 +1,8 @@
 from functools import wraps
 
-from flask import current_app, g, jsonify, request
+from flask import current_app, g, request
 
+from app.exceptions import ForbiddenError, UnauthorizedError
 from app.repository import get_user_by_id
 from app.utils import decode_access_token, extract_bearer_token
 
@@ -15,58 +16,59 @@ def _set_test_user(role="admin"):
     }
 
 
+def load_current_user():
+    if current_app.config.get("TESTING"):
+        _set_test_user(role="admin")
+        return g.current_user
+
+    token = extract_bearer_token(request.headers.get("Authorization"))
+    if not token:
+        raise UnauthorizedError("Missing bearer token", code="missing_bearer_token")
+
+    payload = decode_access_token(token)
+    if not payload:
+        raise UnauthorizedError(
+            "Invalid or expired token",
+            code="invalid_or_expired_token",
+        )
+
+    user_id = payload.get("sub")
+    user = get_user_by_id(user_id)
+
+    if not user:
+        raise UnauthorizedError("User not found", code="user_not_found")
+
+    g.current_user = user
+    return user
+
+
 def auth_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        if current_app.config.get("TESTING"):
-            _set_test_user(role="admin")
-            return fn(*args, **kwargs)
-
-        token = extract_bearer_token(request.headers.get("Authorization"))
-        if not token:
-            return jsonify({"error": "Missing bearer token"}), 401
-
-        payload = decode_access_token(token)
-        if not payload:
-            return jsonify({"error": "Invalid or expired token"}), 401
-
-        user_id = payload.get("sub")
-        user = get_user_by_id(user_id)
-
-        if not user:
-            return jsonify({"error": "User not found"}), 401
-
-        g.current_user = user
+        load_current_user()
         return fn(*args, **kwargs)
 
     return wrapper
 
 
-def admin_required(fn):
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        if current_app.config.get("TESTING"):
-            _set_test_user(role="admin")
+def role_required(required_role):
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            if current_app.config.get("TESTING"):
+                _set_test_user(role=required_role)
+                return fn(*args, **kwargs)
+
+            user = load_current_user()
+
+            if user.get("role") != required_role:
+                raise ForbiddenError("Forbidden", code="forbidden")
+
             return fn(*args, **kwargs)
 
-        token = extract_bearer_token(request.headers.get("Authorization"))
-        if not token:
-            return jsonify({"error": "Missing bearer token"}), 401
+        return wrapper
 
-        payload = decode_access_token(token)
-        if not payload:
-            return jsonify({"error": "Invalid or expired token"}), 401
+    return decorator
 
-        user_id = payload.get("sub")
-        user = get_user_by_id(user_id)
 
-        if not user:
-            return jsonify({"error": "User not found"}), 401
-
-        if user.get("role") != "admin":
-            return jsonify({"error": "Forbidden"}), 403
-
-        g.current_user = user
-        return fn(*args, **kwargs)
-
-    return wrapper
+admin_required = role_required("admin")
