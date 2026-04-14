@@ -1,12 +1,12 @@
 from app.exceptions import ConflictError, NotFoundError, ValidationError
 from app.repository import (
     add_user_to_db,
+    delete_user_from_db,
     get_user_by_email,
     get_user_by_id,
     search_users_paginated,
     get_users_paginated,
     update_user_in_db,
-    delete_user_from_db,
 )
 from app.utils import normalize_email
 
@@ -83,6 +83,46 @@ def update_user_service(user_id: int, name, raw_email):
         user_id=user_id,
         name=validated_name,
         email=email,
+    )
+
+    if not updated_user:
+        raise NotFoundError("User not found", code="user_not_found")
+
+    return updated_user
+
+
+def update_current_user_service(user_id: int, name=None, raw_email=None):
+    existing_user = get_user_by_id(user_id)
+    if not existing_user:
+        raise NotFoundError("User not found", code="user_not_found")
+
+    has_name = name is not None
+    has_email = raw_email is not None
+
+    if not has_name and not has_email:
+        raise ValidationError(
+            "At least one field is required",
+            code="no_fields_to_update",
+        )
+
+    final_name = existing_user["name"]
+    final_email = existing_user["email"]
+
+    if has_name:
+        final_name = validate_user_name(name)
+
+    if has_email:
+        final_email = validate_user_email(raw_email)
+
+        if final_email:
+            other_user = get_user_by_email(final_email)
+            if other_user and other_user["id"] != user_id:
+                raise ConflictError("Email already exists", code="email_exists")
+
+    updated_user = update_user_in_db(
+        user_id=user_id,
+        name=final_name,
+        email=final_email,
     )
 
     if not updated_user:
