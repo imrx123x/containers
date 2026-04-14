@@ -203,7 +203,7 @@ def me():
     tags:
       - Auth
     security:
-      - Bearer: []
+      - BearerAuth: []
     responses:
       200:
         description: Current authenticated user
@@ -238,7 +238,7 @@ def update_me():
     tags:
       - Auth
     security:
-      - Bearer: []
+      - BearerAuth: []
     consumes:
       - application/json
     parameters:
@@ -301,7 +301,7 @@ def change_password():
     tags:
       - Auth
     security:
-      - Bearer: []
+      - BearerAuth: []
     consumes:
       - application/json
     parameters:

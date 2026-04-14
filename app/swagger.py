@@ -9,13 +9,13 @@ swagger_template = {
         "version": "1.0.0",
     },
     "basePath": "/",
-    "schemes": ["https", "http"],
+    "schemes": ["http", "https"],
     "securityDefinitions": {
-        "Bearer": {
+        "BearerAuth": {
             "type": "apiKey",
             "name": "Authorization",
             "in": "header",
-            "description": "JWT-like bearer token. Example: Bearer <token>",
+            "description": "Wklej token w formacie: Bearer <access_token>",
         }
     },
 }

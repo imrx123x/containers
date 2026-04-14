@@ -41,7 +41,7 @@ def get_users():
     tags:
       - Users
     security:
-      - Bearer: []
+      - BearerAuth: []
     parameters:
       - in: query
         name: q
@@ -134,7 +134,7 @@ def get_user(user_id):
     tags:
       - Users
     security:
-      - Bearer: []
+      - BearerAuth: []
     parameters:
       - in: path
         name: user_id
@@ -180,7 +180,7 @@ def create_user():
     tags:
       - Users
     security:
-      - Bearer: []
+      - BearerAuth: []
     consumes:
       - application/json
     parameters:
@@ -244,7 +244,7 @@ def update_user(user_id):
     tags:
       - Users
     security:
-      - Bearer: []
+      - BearerAuth: []
     consumes:
       - application/json
     parameters:
@@ -319,7 +319,7 @@ def delete_user(user_id):
     tags:
       - Users
     security:
-      - Bearer: []
+      - BearerAuth: []
     parameters:
       - in: path
         name: user_id
