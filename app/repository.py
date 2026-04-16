@@ -1,4 +1,4 @@
-from app.db import ensure_db_ready, get_db_connection
+from app.db import get_db_connection
 
 
 def _row_to_dict(row):
@@ -27,8 +27,6 @@ def _row_to_auth_dict(row):
 
 
 def get_users_paginated(page: int, limit: int):
-    ensure_db_ready()
-
     offset = (page - 1) * limit
 
     conn = get_db_connection()
@@ -62,8 +60,6 @@ def get_users_paginated(page: int, limit: int):
 
 
 def get_deleted_users_paginated(page: int, limit: int):
-    ensure_db_ready()
-
     offset = (page - 1) * limit
 
     conn = get_db_connection()
@@ -97,8 +93,6 @@ def get_deleted_users_paginated(page: int, limit: int):
 
 
 def search_users_paginated(query: str, page: int, limit: int):
-    ensure_db_ready()
-
     offset = (page - 1) * limit
     like_query = f"%{query.lower()}%"
 
@@ -142,8 +136,6 @@ def search_users_paginated(query: str, page: int, limit: int):
 
 
 def get_user_by_id(user_id):
-    ensure_db_ready()
-
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -165,8 +157,6 @@ def get_user_by_id(user_id):
 
 
 def get_user_by_email(email, include_password=False):
-    ensure_db_ready()
-
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -203,8 +193,6 @@ def get_user_by_email(email, include_password=False):
 
 
 def add_user_to_db(name, email, password_hash=None, role="user"):
-    ensure_db_ready()
-
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -226,8 +214,6 @@ def add_user_to_db(name, email, password_hash=None, role="user"):
 
 
 def update_user_in_db(user_id, name, email):
-    ensure_db_ready()
-
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -253,8 +239,6 @@ def update_user_in_db(user_id, name, email):
 
 
 def update_user_password_in_db(user_id, password_hash):
-    ensure_db_ready()
-
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -279,8 +263,6 @@ def update_user_password_in_db(user_id, password_hash):
 
 
 def soft_delete_user_from_db(user_id):
-    ensure_db_ready()
-
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -305,8 +287,6 @@ def soft_delete_user_from_db(user_id):
 
 
 def restore_user_in_db(user_id):
-    ensure_db_ready()
-
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -331,8 +311,6 @@ def restore_user_in_db(user_id):
 
 
 def hard_delete_user_from_db(user_id):
-    ensure_db_ready()
-
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -355,8 +333,6 @@ def hard_delete_user_from_db(user_id):
 
 
 def get_dashboard_stats():
-    ensure_db_ready()
-
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -401,8 +377,6 @@ def add_audit_log(
     target_email=None,
     details=None,
 ):
-    ensure_db_ready()
-
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -447,8 +421,6 @@ def add_audit_log(
 
 
 def get_recent_audit_logs(limit: int = 10):
-    ensure_db_ready()
-
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -479,5 +451,7 @@ def get_recent_audit_logs(limit: int = 10):
         }
         for row in rows
     ]
+
+
 def delete_user_from_db(user_id):
     return soft_delete_user_from_db(user_id)
