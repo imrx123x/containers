@@ -5,7 +5,7 @@ services:
     plan: free
     region: frankfurt
     buildCommand: pip install -r requirements.txt -r requirements-dev.txt
-    preDeployCommand: alembic stamp 0001_baseline_full_schema
+    preDeployCommand: python -V && ls && ls migrations && ls migrations/versions && alembic stamp 0001_baseline_full_schema
     startCommand: gunicorn -b 0.0.0.0:$PORT run:app
     healthCheckPath: /health
     envVars:
