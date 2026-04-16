@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from flask import Flask, g, jsonify, request, session
 
+from app.csrf import init_csrf
 from app.exceptions import AppError
 from app.logging import log
 from app.routes.api import api_bp
@@ -64,6 +65,13 @@ def create_app():
     app.register_blueprint(web_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(auth_bp)
+
+    init_csrf(app)
+
+    # API działa na Authorization: Bearer ..., więc nie wymagamy CSRF na endpointach API.
+    from app.csrf import csrf
+    csrf.exempt(api_bp)
+    csrf.exempt(auth_bp)
 
     init_swagger(app)
     register_error_handlers(app)
