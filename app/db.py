@@ -31,6 +31,19 @@ def get_db_config():
     }
 
 
+def get_database_url():
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return database_url
+
+    user = os.getenv("DB_USER", "myuser")
+    password = os.getenv("DB_PASSWORD", "mypassword")
+    host = os.getenv("DB_HOST", "db")
+    port = os.getenv("DB_PORT", "5432")
+    db = os.getenv("DB_NAME", "mydatabase")
+    return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}"
+
+
 def get_db_connection():
     return psycopg2.connect(**get_db_config())
 

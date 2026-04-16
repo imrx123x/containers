@@ -5,6 +5,7 @@ from sqlalchemy import create_engine, pool
 
 from app.db import get_database_url
 
+
 config = context.config
 
 if config.config_file_name is not None:
