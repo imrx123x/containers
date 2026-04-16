@@ -11,4 +11,4 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "alembic stamp 0001_baseline_full_schema && gunicorn -b 0.0.0.0:$PORT run:app"]
+CMD ["sh", "-c", "alembic upgrade head && gunicorn -b 0.0.0.0:$PORT run:app"]
