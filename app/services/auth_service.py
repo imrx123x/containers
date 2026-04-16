@@ -122,12 +122,16 @@ def request_password_reset_service(raw_email: str):
     user = get_user_by_email(email, include_password=True)
 
     if not user:
-        raise NotFoundError("User not found", code="user_not_found")
+        return {
+            "message": "If the account exists, a password reset email has been sent",
+            "user": None,
+            "reset_token": None,
+        }
 
     reset_token = generate_password_reset_token(user)
 
     return {
-        "message": "Password reset link generated",
+        "message": "If the account exists, a password reset email has been sent",
         "user": user,
         "reset_token": reset_token,
     }

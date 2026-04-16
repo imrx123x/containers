@@ -35,6 +35,8 @@ from app.services.auth_service import (
 from app.services.user_service import update_current_user_service
 from app.utils import decode_access_token, normalize_email
 from app.csrf import csrf
+from app.mail import send_password_reset_email
+
 
 web_bp = Blueprint("web", __name__)
 
@@ -222,7 +224,6 @@ def forgot_password_page():
         return render_template(
             "forgot_password.html",
             current_user=get_session_user(),
-            reset_link=None,
         )
 
     email = request.form.get("email", "")
@@ -231,31 +232,40 @@ def forgot_password_page():
         result = request_password_reset_service(email)
         user = result["user"]
         reset_token = result["reset_token"]
-        reset_link = url_for("web.reset_password_page", token=reset_token, _external=True)
 
-        add_audit_log(
-            action="request_password_reset",
-            actor_id=user["id"],
-            actor_email=user["email"],
-            target_user_id=user["id"],
-            target_email=user["email"],
-            details="Password reset link generated",
-        )
+        if user and reset_token:
+            reset_link = url_for(
+                "web.reset_password_page",
+                token=reset_token,
+                _external=True,
+            )
 
-        flash("Wygenerowano link do resetu hasła", "success")
-        return render_template(
-            "forgot_password.html",
-            current_user=get_session_user(),
-            reset_link=reset_link,
+            send_password_reset_email(
+                to_email=user["email"],
+                reset_link=reset_link,
+            )
+
+            add_audit_log(
+                action="request_password_reset",
+                actor_id=user["id"],
+                actor_email=user["email"],
+                target_user_id=user["id"],
+                target_email=user["email"],
+                details="Password reset email sent",
+            )
+
+        flash(
+            "Jeśli konto istnieje, wysłaliśmy email z linkiem do resetu hasła.",
+            "success",
         )
+        return redirect(url_for("web.login_page"))
 
     except Exception as error:
         log("warning", "Password reset request failed", error=str(error), email=email)
-        flash(getattr(error, "message", "Nie udało się wygenerować linku resetującego"), "error")
+        flash("Nie udało się wysłać wiadomości resetującej. Spróbuj ponownie później.", "error")
         return render_template(
             "forgot_password.html",
             current_user=get_session_user(),
-            reset_link=None,
         ), 400
 
 
