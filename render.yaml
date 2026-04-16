@@ -5,7 +5,7 @@ services:
     plan: free
     region: frankfurt
     buildCommand: pip install -r requirements.txt -r requirements-dev.txt
-    startCommand: gunicorn -b 0.0.0.0:$PORT run:app
+    startCommand: alembic stamp 0001_baseline_full_schema && gunicorn -b 0.0.0.0:$PORT run:app
     healthCheckPath: /health
     envVars:
       - key: APP_ENV
