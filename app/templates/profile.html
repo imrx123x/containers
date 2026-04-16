@@ -3,43 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Users App</title>
+    <title>Profil</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-
     <div class="topbar">
         <div>
             <strong>Users App</strong>
         </div>
 
         <div class="topbar-actions">
-            {% if current_user %}
-                <span class="user-pill">
-                    Zalogowany jako
-                    <strong>{{ current_user.name }}</strong>
+            <a class="btn btn-secondary" href="{{ url_for('web.home') }}">Strona główna</a>
 
-                    {% if current_user.role == "admin" %}
-                        <span class="role-badge admin">Admin</span>
-                    {% else %}
-                        <span class="role-badge user">User</span>
-                    {% endif %}
-                </span>
-
-                <a class="btn btn-secondary" href="{{ url_for('web.profile') }}">Profil</a>
-
-                <form action="{{ url_for('web.logout') }}" method="post" class="inline-form">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-danger">Wyloguj</button>
-                </form>
-            {% else %}
-                <a class="btn btn-secondary" href="{{ url_for('web.login_page') }}">Logowanie</a>
-                <a class="btn btn-primary" href="{{ url_for('web.register_page') }}">Rejestracja</a>
-            {% endif %}
+            <form action="{{ url_for('web.logout') }}" method="post" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger">Wyloguj</button>
+            </form>
         </div>
     </div>
 
-    <h1>Flask + PostgreSQL Users App</h1>
+    <h1>Twój profil</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -53,232 +36,73 @@
         {% endif %}
     {% endwith %}
 
-    {% if not current_user %}
-        <div class="card">
-            <h2>Witaj 👋</h2>
-            <p>Zaloguj się albo utwórz konto, aby korzystać z aplikacji.</p>
+    <div class="card">
+        <h2>Dane użytkownika</h2>
 
-            <div class="hero-actions">
-                <a class="btn btn-primary" href="{{ url_for('web.register_page') }}">Załóż konto</a>
-                <a class="btn btn-secondary" href="{{ url_for('web.login_page') }}">Zaloguj się</a>
-            </div>
-        </div>
+        <p>
+            <strong>Imię:</strong>
+            <span style="font-size: 18px;">{{ current_user.name }}</span>
+        </p>
 
-    {% elif not is_admin %}
-        <div class="card">
-            <h2>Panel użytkownika</h2>
-            <p>Masz dostęp do swojego profilu i zmiany hasła.</p>
+        <p><strong>Email:</strong> {{ current_user.email }}</p>
 
-            <div class="hero-actions">
-                <a class="btn btn-primary" href="{{ url_for('web.profile') }}">Przejdź do profilu</a>
-            </div>
-        </div>
-
-    {% else %}
-
-        <div class="card">
-            <h2>Panel administratora</h2>
-            <p>Zarządzaj użytkownikami, koszem i monitoruj aktywność systemu.</p>
-        </div>
-
-        {% if stats %}
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-title">Wszyscy użytkownicy</div>
-                <div class="stat-value">{{ stats.total_users }}</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-title">Admini</div>
-                <div class="stat-value">{{ stats.total_admins }}</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-title">Zwykli użytkownicy</div>
-                <div class="stat-value">{{ stats.total_regular_users }}</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-title">Ostatni użytkownik</div>
-                {% if stats.latest_user %}
-                    <div class="stat-value small">
-                        {{ stats.latest_user.name }}
-                        <br>
-                        <small>{{ stats.latest_user.email }}</small>
-                    </div>
-                {% else %}
-                    <div class="stat-value small">Brak danych</div>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-
-        <div class="card">
-            <h2>Dodaj użytkownika</h2>
-            <form action="/add-user" method="post" class="stack-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="text" name="name" placeholder="Imię" required>
-                <input type="email" name="email" placeholder="Email">
-                <button type="submit" class="btn btn-primary">Dodaj</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <h2>Wyszukaj</h2>
-            <form method="get" action="/" class="stack-form">
-                <input type="text" name="q" value="{{ query or '' }}" placeholder="Szukaj...">
-                <button type="submit" class="btn btn-secondary">Szukaj</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <h2>Aktywni użytkownicy</h2>
-
-            {% if users %}
-                <ul>
-                    {% for user in users %}
-                    <li>
-                        <div class="user-summary">
-                            <strong>#{{ user.id }}</strong> {{ user.name }}
-
-                            {% if user.email %}
-                                <br>
-                                <small>{{ user.email }}</small>
-                            {% endif %}
-
-                            {% if user.role == "admin" %}
-                                <br><span class="role-badge admin">Admin</span>
-                            {% else %}
-                                <br><span class="role-badge user">User</span>
-                            {% endif %}
-                        </div>
-
-                        <form action="/edit-user/{{ user.id }}" method="post">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="text" name="name" value="{{ user.name }}" required>
-                            <input type="email" name="email" value="{{ user.email or '' }}">
-                            <button type="submit" class="btn btn-secondary">Zapisz</button>
-                        </form>
-
-                        <form action="/delete-user/{{ user.id }}" method="post" onsubmit="return confirm('Przenieść użytkownika do kosza?');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-danger">Do kosza</button>
-                        </form>
-                    </li>
-                    {% endfor %}
-                </ul>
+        <p>
+            <strong>Rola:</strong>
+            {% if current_user.role == "admin" %}
+                <span class="role-badge admin">Admin</span>
             {% else %}
-                <p>Brak aktywnych użytkowników</p>
+                <span class="role-badge user">User</span>
             {% endif %}
+        </p>
 
-            <div class="pagination">
-                {% if page > 1 %}
-                    <a href="?q={{ query }}&page={{ page - 1 }}&deleted_page={{ deleted_page }}">⬅ Prev</a>
-                {% endif %}
+        <p style="margin-top: 10px; font-size: 13px; color: #666;">
+            ID użytkownika: {{ current_user.id }}
+        </p>
+    </div>
 
-                <span>Page {{ page }} / {{ total_pages }}</span>
+    <div class="card">
+        <h2>Edytuj profil</h2>
 
-                {% if page < total_pages %}
-                    <a href="?q={{ query }}&page={{ page + 1 }}&deleted_page={{ deleted_page }}">Next ➡</a>
-                {% endif %}
-            </div>
-        </div>
+        <form action="{{ url_for('web.update_profile') }}" method="post" class="stack-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <div class="card">
-            <h2>Kosz</h2>
+            <input
+                type="text"
+                name="name"
+                value="{{ current_user.name }}"
+                placeholder="Imię"
+                required
+            >
+            <input
+                type="email"
+                name="email"
+                value="{{ current_user.email or '' }}"
+                placeholder="Adres email"
+            >
+            <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+        </form>
+    </div>
 
-            {% if deleted_users %}
-                <ul>
-                    {% for user in deleted_users %}
-                    <li>
-                        <div class="user-summary">
-                            <strong>#{{ user.id }}</strong> {{ user.name }}
+    <div class="card">
+        <h2>Zmień hasło</h2>
 
-                            {% if user.email %}
-                                <br>
-                                <small>{{ user.email }}</small>
-                            {% endif %}
+        <form action="{{ url_for('web.change_password_web') }}" method="post" class="stack-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                            {% if user.role == "admin" %}
-                                <br><span class="role-badge admin">Admin</span>
-                            {% else %}
-                                <br><span class="role-badge user">User</span>
-                            {% endif %}
-
-                            {% if user.deleted_at %}
-                                <br>
-                                <small>Usunięto: {{ user.deleted_at }}</small>
-                            {% endif %}
-                        </div>
-
-                        <form action="/restore-user/{{ user.id }}" method="post">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-primary">Przywróć</button>
-                        </form>
-
-                        <form action="/hard-delete-user/{{ user.id }}" method="post" onsubmit="return confirm('Usunąć użytkownika na zawsze?');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-danger">Usuń na zawsze</button>
-                        </form>
-                    </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p>Kosz jest pusty</p>
-            {% endif %}
-
-            <div class="pagination">
-                {% if deleted_page > 1 %}
-                    <a href="?q={{ query }}&page={{ page }}&deleted_page={{ deleted_page - 1 }}">⬅ Prev</a>
-                {% endif %}
-
-                <span>Trash page {{ deleted_page }} / {{ deleted_total_pages }}</span>
-
-                {% if deleted_page < deleted_total_pages %}
-                    <a href="?q={{ query }}&page={{ page }}&deleted_page={{ deleted_page + 1 }}">Next ➡</a>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>Ostatnie akcje</h2>
-
-            {% if recent_logs %}
-                <ul class="audit-log-list">
-                    {% for log_item in recent_logs %}
-                        <li class="audit-log-item">
-                            <strong>{{ log_item.action }}</strong><br>
-
-                            <small>
-                                wykonawca:
-                                {{ log_item.actor_email or "nieznany" }}
-                            </small><br>
-
-                            {% if log_item.target_email %}
-                                <small>cel: {{ log_item.target_email }}</small><br>
-                            {% elif log_item.target_user_id %}
-                                <small>cel user id: {{ log_item.target_user_id }}</small><br>
-                            {% endif %}
-
-                            {% if log_item.details %}
-                                <small>{{ log_item.details }}</small><br>
-                            {% endif %}
-
-                            <small>{{ log_item.created_at }}</small>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p>Brak logów.</p>
-            {% endif %}
-        </div>
-
-    {% endif %}
-
-    <a href="/apidocs/" target="_blank" rel="noopener noreferrer" class="swagger-btn">
-        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swagger/swagger-original.svg" alt="Swagger">
-        API Docs
-    </a>
-
+            <input
+                type="password"
+                name="current_password"
+                placeholder="Obecne hasło"
+                required
+            >
+            <input
+                type="password"
+                name="new_password"
+                placeholder="Nowe hasło (min. 8 znaków)"
+                required
+            >
+            <button type="submit" class="btn btn-primary">Zmień hasło</button>
+        </form>
+    </div>
 </body>
 </html>

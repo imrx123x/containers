@@ -34,7 +34,7 @@ from app.services.auth_service import (
 )
 from app.services.user_service import update_current_user_service
 from app.utils import decode_access_token, normalize_email
-
+from app.csrf import csrf
 
 web_bp = Blueprint("web", __name__)
 
@@ -347,6 +347,7 @@ def register_page():
 
 
 @web_bp.route("/logout", methods=["POST"])
+@csrf.exempt
 def logout():
     session.pop("access_token", None)
     session.pop("user_name", None)

@@ -29,6 +29,7 @@
                 <a class="btn btn-secondary" href="{{ url_for('web.profile') }}">Profil</a>
 
                 <form action="{{ url_for('web.logout') }}" method="post" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-danger">Wyloguj</button>
                 </form>
             {% else %}
@@ -115,6 +116,7 @@
         <div class="card">
             <h2>Dodaj użytkownika</h2>
             <form action="/add-user" method="post" class="stack-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="text" name="name" placeholder="Imię" required>
                 <input type="email" name="email" placeholder="Email">
                 <button type="submit" class="btn btn-primary">Dodaj</button>
@@ -152,12 +154,14 @@
                         </div>
 
                         <form action="/edit-user/{{ user.id }}" method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="text" name="name" value="{{ user.name }}" required>
                             <input type="email" name="email" value="{{ user.email or '' }}">
                             <button type="submit" class="btn btn-secondary">Zapisz</button>
                         </form>
 
                         <form action="/delete-user/{{ user.id }}" method="post" onsubmit="return confirm('Przenieść użytkownika do kosza?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger">Do kosza</button>
                         </form>
                     </li>
@@ -208,10 +212,12 @@
                         </div>
 
                         <form action="/restore-user/{{ user.id }}" method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-primary">Przywróć</button>
                         </form>
 
                         <form action="/hard-delete-user/{{ user.id }}" method="post" onsubmit="return confirm('Usunąć użytkownika na zawsze?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger">Usuń na zawsze</button>
                         </form>
                     </li>
@@ -273,6 +279,6 @@
         <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swagger/swagger-original.svg" alt="Swagger">
         API Docs
     </a>
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
 </body>
 </html>
