@@ -15,26 +15,20 @@ depends_on = None
 
 
 def upgrade():
-    op.execute(
-        """
+    op.execute("""
         CREATE INDEX IF NOT EXISTS users_deleted_at_idx
         ON users (deleted_at);
-        """
-    )
+    """)
 
-    op.execute(
-        """
+    op.execute("""
         CREATE INDEX IF NOT EXISTS audit_logs_created_at_idx
         ON audit_logs (created_at DESC);
-        """
-    )
+    """)
 
-    op.execute(
-        """
+    op.execute("""
         CREATE INDEX IF NOT EXISTS audit_logs_target_user_id_idx
         ON audit_logs (target_user_id);
-        """
-    )
+    """)
 
 
 def downgrade():
