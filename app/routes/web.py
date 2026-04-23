@@ -422,9 +422,6 @@ def update_profile():
 
     return redirect(url_for("web.profile"))
 
-@web_bp.route("/sentry-test")
-def sentry_test():
-    raise RuntimeError("Sentry działa")
 
 @web_bp.route("/change-password", methods=["POST"])
 def change_password_web():
