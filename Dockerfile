@@ -11,4 +11,4 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "alembic upgrade head && gunicorn -b 0.0.0.0:$PORT run:app"]
+CMD ["sh", "-c", "echo 'Running migrations...' && alembic upgrade head && echo 'Starting app...' && gunicorn -b 0.0.0.0:$PORT run:app"]

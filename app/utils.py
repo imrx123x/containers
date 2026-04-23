@@ -1,3 +1,4 @@
+import os
 import re
 
 from flask import current_app
@@ -44,6 +45,20 @@ def _get_serializer():
     return URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
 
 
+def _get_access_token_max_age() -> int:
+    raw_value = os.getenv("ACCESS_TOKEN_MAX_AGE_SECONDS", "3600")
+
+    try:
+        value = int(raw_value)
+    except (TypeError, ValueError):
+        return 3600
+
+    if value <= 0:
+        return 3600
+
+    return value
+
+
 def generate_access_token(user: dict) -> str:
     serializer = _get_serializer()
     return serializer.dumps(
@@ -57,8 +72,11 @@ def generate_access_token(user: dict) -> str:
     )
 
 
-def decode_access_token(token: str, max_age: int = 60 * 60 * 24):
+def decode_access_token(token: str, max_age: int | None = None):
     serializer = _get_serializer()
+
+    if max_age is None:
+        max_age = _get_access_token_max_age()
 
     try:
         return serializer.loads(token, salt="access-token", max_age=max_age)

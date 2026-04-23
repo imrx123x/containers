@@ -170,3 +170,28 @@ def test_decode_access_token_rejects_password_reset_token(app):
         payload = decode_access_token(reset_token)
 
     assert payload is None
+
+
+def test_decode_access_token_uses_env_max_age(app, monkeypatch):
+    monkeypatch.setenv("ACCESS_TOKEN_MAX_AGE_SECONDS", "7200")
+
+    with app.app_context():
+        payload = decode_access_token("invalid-token")
+
+    assert payload is None
+
+
+def test_decode_access_token_falls_back_to_default_when_env_invalid(app, monkeypatch):
+    monkeypatch.setenv("ACCESS_TOKEN_MAX_AGE_SECONDS", "not-a-number")
+
+    with app.app_context():
+        payload = decode_access_token("invalid-token")
+
+    assert payload is None
+
+
+def test_decode_access_token_accepts_explicit_max_age(app):
+    with app.app_context():
+        payload = decode_access_token("invalid-token", max_age=60)
+
+    assert payload is None
