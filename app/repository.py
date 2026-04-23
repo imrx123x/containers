@@ -10,6 +10,7 @@ def _row_to_dict(row):
         "created_at": row[4],
         "updated_at": row[5],
         "deleted_at": row[6],
+        "token_version": row[7],
     }
 
 
@@ -23,6 +24,7 @@ def _row_to_auth_dict(row):
         "created_at": row[5],
         "updated_at": row[6],
         "deleted_at": row[7],
+        "token_version": row[8],
     }
 
 
@@ -34,7 +36,7 @@ def get_users_paginated(page: int, limit: int):
 
     cur.execute(
         """
-        SELECT id, name, email, role, created_at, updated_at, deleted_at
+        SELECT id, name, email, role, created_at, updated_at, deleted_at, token_version
         FROM users
         WHERE deleted_at IS NULL
         ORDER BY id
@@ -67,7 +69,7 @@ def get_deleted_users_paginated(page: int, limit: int):
 
     cur.execute(
         """
-        SELECT id, name, email, role, created_at, updated_at, deleted_at
+        SELECT id, name, email, role, created_at, updated_at, deleted_at, token_version
         FROM users
         WHERE deleted_at IS NOT NULL
         ORDER BY deleted_at DESC, id DESC
@@ -101,7 +103,7 @@ def search_users_paginated(query: str, page: int, limit: int):
 
     cur.execute(
         """
-        SELECT id, name, email, role, created_at, updated_at, deleted_at
+        SELECT id, name, email, role, created_at, updated_at, deleted_at, token_version
         FROM users
         WHERE deleted_at IS NULL
           AND (
@@ -141,7 +143,7 @@ def get_user_by_id(user_id):
 
     cur.execute(
         """
-        SELECT id, name, email, role, created_at, updated_at, deleted_at
+        SELECT id, name, email, role, created_at, updated_at, deleted_at, token_version
         FROM users
         WHERE id = %s
           AND deleted_at IS NULL;
@@ -163,7 +165,7 @@ def get_user_by_email(email, include_password=False):
     if include_password:
         cur.execute(
             """
-            SELECT id, name, email, password_hash, role, created_at, updated_at, deleted_at
+            SELECT id, name, email, password_hash, role, created_at, updated_at, deleted_at, token_version
             FROM users
             WHERE LOWER(email) = LOWER(%s)
               AND deleted_at IS NULL;
@@ -177,7 +179,7 @@ def get_user_by_email(email, include_password=False):
 
     cur.execute(
         """
-        SELECT id, name, email, role, created_at, updated_at, deleted_at
+        SELECT id, name, email, role, created_at, updated_at, deleted_at, token_version
         FROM users
         WHERE LOWER(email) = LOWER(%s)
           AND deleted_at IS NULL;
@@ -200,7 +202,7 @@ def add_user_to_db(name, email, password_hash=None, role="user"):
         """
         INSERT INTO users (name, email, password_hash, role)
         VALUES (%s, %s, %s, %s)
-        RETURNING id, name, email, role, created_at, updated_at, deleted_at;
+        RETURNING id, name, email, role, created_at, updated_at, deleted_at, token_version;
         """,
         (name, email, password_hash, role),
     )
@@ -225,7 +227,7 @@ def update_user_in_db(user_id, name, email):
             updated_at = CURRENT_TIMESTAMP
         WHERE id = %s
           AND deleted_at IS NULL
-        RETURNING id, name, email, role, created_at, updated_at, deleted_at;
+        RETURNING id, name, email, role, created_at, updated_at, deleted_at, token_version;
         """,
         (name, email, user_id),
     )
@@ -246,10 +248,11 @@ def update_user_password_in_db(user_id, password_hash):
         """
         UPDATE users
         SET password_hash = %s,
+            token_version = token_version + 1,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = %s
           AND deleted_at IS NULL
-        RETURNING id, name, email, role, created_at, updated_at, deleted_at;
+        RETURNING id, name, email, role, created_at, updated_at, deleted_at, token_version;
         """,
         (password_hash, user_id),
     )
@@ -273,7 +276,7 @@ def soft_delete_user_from_db(user_id):
             updated_at = CURRENT_TIMESTAMP
         WHERE id = %s
           AND deleted_at IS NULL
-        RETURNING id, name, email, role, created_at, updated_at, deleted_at;
+        RETURNING id, name, email, role, created_at, updated_at, deleted_at, token_version;
         """,
         (user_id,),
     )
@@ -297,7 +300,7 @@ def restore_user_in_db(user_id):
             updated_at = CURRENT_TIMESTAMP
         WHERE id = %s
           AND deleted_at IS NOT NULL
-        RETURNING id, name, email, role, created_at, updated_at, deleted_at;
+        RETURNING id, name, email, role, created_at, updated_at, deleted_at, token_version;
         """,
         (user_id,),
     )
@@ -319,7 +322,7 @@ def hard_delete_user_from_db(user_id):
         DELETE FROM users
         WHERE id = %s
           AND deleted_at IS NOT NULL
-        RETURNING id, name, email, role, created_at, updated_at, deleted_at;
+        RETURNING id, name, email, role, created_at, updated_at, deleted_at, token_version;
         """,
         (user_id,),
     )
@@ -347,7 +350,7 @@ def get_dashboard_stats():
 
     cur.execute(
         """
-        SELECT id, name, email, role, created_at, updated_at, deleted_at
+        SELECT id, name, email, role, created_at, updated_at, deleted_at, token_version
         FROM users
         WHERE deleted_at IS NULL
         ORDER BY id DESC

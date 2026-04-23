@@ -99,6 +99,7 @@ def test_access_token_roundtrip(app):
         "id": 123,
         "email": "anna@example.com",
         "role": "admin",
+        "token_version": 3,
     }
 
     with app.app_context():
@@ -109,6 +110,7 @@ def test_access_token_roundtrip(app):
     assert payload["sub"] == 123
     assert payload["email"] == "anna@example.com"
     assert payload["role"] == "admin"
+    assert payload["token_version"] == 3
 
 
 def test_decode_access_token_returns_none_for_invalid_token(app):

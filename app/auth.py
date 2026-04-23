@@ -13,6 +13,7 @@ def _set_test_user(role="admin"):
         "name": "Test User",
         "email": "test@example.com",
         "role": role,
+        "token_version": 0,
     }
 
 
@@ -33,10 +34,19 @@ def load_current_user():
         )
 
     user_id = payload.get("sub")
+    token_version = payload.get("token_version", 0)
+
     user = get_user_by_id(user_id)
 
     if not user:
         raise UnauthorizedError("User not found", code="user_not_found")
+
+    current_token_version = user.get("token_version", 0)
+    if token_version != current_token_version:
+        raise UnauthorizedError(
+            "Invalid or expired token",
+            code="invalid_or_expired_token",
+        )
 
     g.current_user = user
     return user

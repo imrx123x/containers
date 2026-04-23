@@ -51,6 +51,7 @@ def generate_access_token(user: dict) -> str:
             "sub": user["id"],
             "role": user.get("role", "user"),
             "email": user.get("email"),
+            "token_version": user.get("token_version", 0),
         },
         salt="access-token",
     )
