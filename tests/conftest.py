@@ -1,5 +1,9 @@
 import os
+import sys
+
 import pytest
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app import create_app
 
@@ -12,6 +16,7 @@ def app():
     app = create_app()
     app.config["TESTING"] = True
     app.config["SECRET_KEY"] = "test-secret"
+    app.config["WTF_CSRF_ENABLED"] = False
 
     return app
 
