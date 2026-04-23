@@ -8,6 +8,7 @@ from flask import Flask, g, jsonify, request, session
 from app.csrf import init_csrf
 from app.exceptions import AppError
 from app.logging import log
+from app.monitoring import init_sentry
 from app.routes.api import api_bp
 from app.routes.auth import auth_bp
 from app.routes.web import web_bp
@@ -15,6 +16,8 @@ from app.swagger import init_swagger
 
 
 def create_app():
+    init_sentry()
+
     app = Flask(__name__)
 
     secret_key = os.getenv("SECRET_KEY")
